@@ -14,6 +14,7 @@ No shared code, art, camera or characters with ND96 — this repo is the whole g
 | Identity | **Lantern Night**: a night majlis diorama — pomegranate rug, plaster wall with a brass arch, two strings of lanterns, a ring of cushions. Mint/coral, cream type. |
 | The party game | A 16-space **rug road** after every round: dice, coins, golden dallahs, shop, chaos, event, and a **fork the phones vote on**. |
 | Turn picker | One pool per session from `lib/picker.js`: everyone plays once before anyone repeats, pairs always span both teams, random inside the pool. Tested with 45 bots. |
+| Shake the Laban | **هزّوا العلبة** — a can per team, a gold safety line, taps or DeviceMotion both count. |
 | Session length | Chosen in the lobby: **قصيرة · ٥ جولات** or **كاملة · ٩ جولات**. |
 | Watching phones | A phone with nothing to press gets a **cheer button** — never a dead screen. |
 | Rig | One instanced character (thobe, arms, painted face, ghutra, iqal, team scarf) used for the lobby crowd, the board tokens and the podium. |

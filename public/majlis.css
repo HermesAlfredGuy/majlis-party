@@ -54,7 +54,7 @@ body.host #t-ar{display:block;font-family:var(--display);font-weight:800;font-si
 body.host #t-en{display:block;font-size:clamp(9px,.82vw,14px);font-weight:700;letter-spacing:.28em;color:var(--brass);margin-top:6px}
 body.host #meta{display:flex;align-items:center;gap:10px;justify-self:start}
 body.host #top>.chip.mid{justify-self:center}
-body.host .chip{font-size:clamp(15px,1.35vw,26px);font-weight:700;padding:12px 22px;border-radius:999px;
+body.host .chip{font-size:clamp(18px,1.7vw,32px);font-weight:700;padding:13px 24px;border-radius:999px;
   background:rgba(11,22,38,.62);border:2px solid rgba(240,174,76,.42);color:var(--dim);white-space:nowrap}
 body.host .chip.gold{color:var(--lamp);border-color:rgba(240,174,76,.7)}
 body.host #timer{font-family:var(--num);font-weight:900;font-size:clamp(24px,2.6vw,46px);line-height:1;color:var(--lamp)}
@@ -72,7 +72,7 @@ body.host .team .row{display:flex;align-items:center;gap:14px}
 body.host .team .cr{font-size:clamp(16px,1.5vw,26px);color:var(--hex)}
 body.host .team .nm{font-family:var(--display);font-weight:800;font-size:clamp(22px,2.4vw,46px);flex:1;white-space:nowrap}
 body.host .team .sc{font-family:var(--num);font-weight:900;font-size:clamp(34px,3.4vw,62px);line-height:1;color:var(--hex);font-variant-numeric:tabular-nums}
-body.host .team .pl{font-size:clamp(15px,1.3vw,24px);font-weight:700;opacity:.9;margin-top:4px;display:flex;gap:14px;align-items:center}
+body.host .team .pl{font-size:clamp(17px,1.55vw,30px);font-weight:700;opacity:.9;margin-top:4px;display:flex;gap:14px;align-items:center}
 body.host .team .pl b{font-family:var(--num);font-weight:900;color:var(--lamp)}
 body.host .team .bar{height:4px;border-radius:99px;background:rgba(255,255,255,.1);margin-top:7px;overflow:hidden}
 body.host .team .bar>i{display:block;height:100%;border-radius:99px;background:var(--hex);transition:width .5s cubic-bezier(.2,.9,.3,1)}

@@ -342,6 +342,18 @@
     } else if (k.type === 'none') {
       const w = el('div', 'watch');
       w.innerHTML = '<div class="wemoji">' + (k.emoji || '📺') + '</div><div class="wtitle">' + (k.label || 'شاهد الشاشة') + '</div><div class="wsub">' + (k.en || '') + '</div>';
+      /* the empty half of a watching phone carries the only things worth looking down for: the score and the
+         round, so it reads as a live tool instead of a dead page */
+      if (s && s.teams && s.teams.length) {
+        const rows = el('div', 'wscore');
+        s.teams.forEach(t => {
+          const r = el('div', 'wrow');
+          r.innerHTML = '<span class="wdot" style="background:' + t.hex + '"></span><span class="wnm">' + t.ar + '</span><span class="wval">✦ ' + ar(t.stars || 0) + '</span>';
+          rows.append(r);
+        });
+        const foot = el('div', 'wfoot', 'الجولة ' + ar((s.idx || 0) + 1) + ' من ' + ar(s.length || 0) + ' · ' + (s.game && s.game.ar ? s.game.ar : ''));
+        w.append(rows, foot);
+      }
       wrap.append(w);
     } else if (k.type === 'side') {
       const g = el('div'); g.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;flex:1';
