@@ -248,8 +248,8 @@
     key.shadow.camera.near = 1; key.shadow.camera.far = 80; key.shadow.bias = -0.0012;
     scene.add(key);
     const fill = new THREE.DirectionalLight(0x8FB6D8, 0.26); fill.position.set(12, 10, 12); scene.add(fill);
-    const l1 = new THREE.PointLight(0xFFB45A, 3.2, 34, 2); l1.position.set(-8.5, 5.2, -6); scene.add(l1);
-    const l2 = new THREE.PointLight(0xFFCB8A, 2.6, 32, 2); l2.position.set(8.5, 4.8, -4); scene.add(l2);
+    const l1 = new THREE.PointLight(0xFFB45A, 2.3, 34, 2); l1.position.set(-8.5, 5.2, -6); scene.add(l1);
+    const l2 = new THREE.PointLight(0xFFCB8A, 1.5, 30, 2); l2.position.set(8.5, 4.8, -4); scene.add(l2);
     const l3 = new THREE.PointLight(0xFF9A5A, 1.6, 22, 2); l3.position.set(0, 3.2, 6); scene.add(l3);
   };
 
@@ -411,31 +411,63 @@
       }
     }
 
+    /* the road bed: a quiet dark strip under every tile, so the rug's diamond weave never runs through the
+     * track. Without this the sixteen tiles read as one pattern at 8-10 m instead of a countable road. */
+    const bed = new THREE.Mesh(new THREE.PlaneGeometry(BW + 1.0, BD + 1.0),
+      new THREE.MeshStandardMaterial({ color: 0x2A1418, roughness: .95, metalness: 0 }));
+    bed.rotation.x = -Math.PI / 2; bed.position.set(0, 0.075, BZ); bed.receiveShadow = true; g.add(bed);
+
     /* tiles */
     const tiles = [];
     BOARD.POINTS.forEach((p, i) => {
       const kind = BOARD.KINDS[i];
-      const w = 2.0, h = 1.52;
+      const w = 2.12, h = 1.62;
       const box = new THREE.Mesh(new THREE.BoxGeometry(w, 0.16, h),
         new THREE.MeshStandardMaterial({ color: 0xE4CFA6, roughness: .8 }));
       const wp = A.boardPoint(p);
       box.position.set(wp.x, 0.13, wp.z); box.receiveShadow = true; box.castShadow = true; g.add(box);
       const tone = { star: 0xF0AE4C, chaos: 0xF0836B, shop: 0xE0A24A, fork: 0x5FD7B8, event: 0xA08FE8, goal: 0xF7C766, coin: 0xF6E7C8 }[kind];
       box.material.color.setHex(tone);
-      const faceCanvas = document.createElement('canvas'); faceCanvas.width = 256; faceCanvas.height = 192;
+      const faceCanvas = document.createElement('canvas'); faceCanvas.width = 320; faceCanvas.height = 240;
       const cg = faceCanvas.getContext('2d');
-      cg.clearRect(0, 0, 256, 192);
-      cg.fillStyle = 'rgba(56,26,8,.95)'; cg.font = '800 116px Baloo, Tajawal, sans-serif';
-      cg.textAlign = 'center'; cg.textBaseline = 'middle';
-      cg.fillText(BOARD.GLYPH[kind], 128, 80);
-      /* the number is the one thing a viewer at the back needs: big, ink, bottom corner */
-      cg.font = '800 62px Tajawal, sans-serif'; cg.fillStyle = 'rgba(56,26,8,.72)';
-      cg.textAlign = 'right'; cg.fillText(String(i + 1), 238, 166);
+      cg.clearRect(0, 0, 320, 240);
+      /* printed cream face with an ink border: the tile edge has to be visible from the back row, and the rug
+         texture must not show through the tile itself */
+      cg.fillStyle = '#F7E8CB';
+      cg.beginPath(); const r = 26, W = 320, H = 240;
+      cg.moveTo(r, 0); cg.arcTo(W, 0, W, H, r); cg.arcTo(W, H, 0, H, r); cg.arcTo(0, H, 0, 0, r); cg.arcTo(0, 0, W, 0, r);
+      cg.closePath(); cg.fill();
+      cg.lineWidth = 12; cg.strokeStyle = 'rgba(58,26,8,.85)'; cg.stroke();
+      /* the number sits in an ink disc top-left: the one thing a viewer counts */
+      cg.beginPath(); cg.arc(62, 62, 42, 0, Math.PI * 2); cg.fillStyle = '#3A1A08'; cg.fill();
+      cg.fillStyle = '#FDF3DF'; cg.font = '800 54px Tajawal, sans-serif';
+      cg.textAlign = 'center'; cg.textBaseline = 'middle'; cg.fillText(String(i + 1), 62, 66);
+      cg.fillStyle = 'rgba(58,26,8,.92)'; cg.font = '800 108px Baloo, Tajawal, sans-serif';
+      cg.fillText(BOARD.GLYPH[kind], 196, 128);
       const ft = new THREE.CanvasTexture(faceCanvas); if (THREE.sRGBEncoding) ft.encoding = THREE.sRGBEncoding;
       const face = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.92, h * 0.92), new THREE.MeshBasicMaterial({ map: ft, transparent: true }));
       face.rotation.x = -Math.PI / 2; face.position.set(wp.x, 0.215, wp.z); g.add(face);
       tiles.push({ mesh: box, face, p: wp, kind });
     });
+    /* the finish gate on the last space: two brass posts and a lit bar, so space 16 reads as an arrival
+       rather than one more tile with a scratch on it */
+    const last = A.boardPoint(BOARD.POINTS[BOARD.POINTS.length - 1]);
+    const gate = new THREE.Group();
+    const postMat = new THREE.MeshStandardMaterial({ color: 0xC9A03F, metalness: .8, roughness: .3 });
+    [-0.72, 0.72].forEach(dx => {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.065, 1.15, 10), postMat);
+      post.position.set(last.x + dx, 0.6, last.z - 1.55); post.castShadow = true; gate.add(post);
+    });
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.1, 0.1), postMat);
+    bar.position.set(last.x, 1.16, last.z - 1.55); gate.add(bar);
+    [-0.5, 0, 0.5].forEach(dx => {
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8),
+        new THREE.MeshBasicMaterial({ color: 0xFFC46E }));
+      lamp.position.set(last.x + dx, 1.04, last.z - 1.55); gate.add(lamp);
+      const gl = new THREE.PointLight(0xFFB45A, 0.9, 4); gl.position.set(last.x + dx, 1.02, last.z - 1.55); gate.add(gl);
+    });
+    g.add(gate);
+
     scene.add(g);
     return { g, tiles };
   };

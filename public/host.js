@@ -431,7 +431,9 @@
   let joinRefs = null;
   function joinLine(s) {
     const box = $('#joinline');
-    const on = s.phase !== 'lobby';
+    /* the join line is a lobby tool: during a round and on the board it competes with the landing panel for the
+       same eye, so it only appears in the lobby and between phases */
+    const on = s.phase === 'lobby' || s.phase === 'wheel' || s.phase === 'slot' || s.phase === 'announce';
     if (!joinRefs) {
       box.textContent = '';
       const url = E('span'); url.style.opacity = '.8';

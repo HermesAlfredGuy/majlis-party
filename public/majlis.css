@@ -56,6 +56,8 @@ body.host #meta{display:flex;align-items:center;gap:10px;justify-self:start}
 body.host #top>.chip.mid{justify-self:center}
 body.host .chip{font-size:clamp(18px,1.7vw,32px);font-weight:700;padding:13px 24px;border-radius:999px;
   background:rgba(11,22,38,.62);border:2px solid rgba(240,174,76,.42);color:var(--dim);white-space:nowrap}
+body.host .snd{position:fixed;left:4vw;bottom:5vh;font:700 15px/1 Tajawal,sans-serif;color:var(--dim);background:rgba(11,22,38,.5);border:1px solid rgba(240,174,76,.3);border-radius:999px;padding:10px 16px}
+body.host[data-phase="playing"] .snd,body.host[data-phase="board"] .snd,body.host[data-phase="announce"] .snd,body.host[data-phase="countdown"] .snd,body.host[data-phase="results"] .snd{opacity:0;pointer-events:none}
 body.host .chip.gold{color:var(--lamp);border-color:rgba(240,174,76,.7)}
 body.host #timer{font-family:var(--num);font-weight:900;font-size:clamp(24px,2.6vw,46px);line-height:1;color:var(--lamp)}
 
@@ -159,7 +161,7 @@ body.host .boardhud .dicetag .d{width:clamp(38px,3.4vw,62px);height:clamp(38px,3
   font-family:var(--num);font-weight:900;font-size:clamp(20px,2vw,34px);color:#2A1A08;background:linear-gradient(160deg,#FFE3B4,#D99A3C);
   box-shadow:0 10px 22px rgba(0,0,0,.4)}
 body.host .boardhud .dicetag .who{font-weight:700;font-size:clamp(12px,1.05vw,18px);color:var(--dim)}
-body.host .boardhud .landing{position:absolute;left:50%;bottom:16.4vh;transform:translateX(-50%);display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:70vw}
+body.host .boardhud .landing{position:absolute;left:50%;bottom:27vh;transform:translateX(-50%);display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:54vw;z-index:3}
 body.host .boardhud .landing>div{padding:12px 20px;border-radius:999px;font-weight:700;font-size:clamp(16px,1.35vw,24px);
   background:rgba(11,22,38,.88);border:2px solid var(--hex);color:var(--cream);animation:rise .3s ease}
 body.host .boardhud .landing b{color:var(--hex)}

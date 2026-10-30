@@ -32,7 +32,7 @@
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 0.95;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -532,7 +532,7 @@
     handle.position.set(-0.36, 0.28, 0); handle.rotation.y = Math.PI / 2;
     grp.add(pot, neck, lid, spout, handle);
     grp.position.set(0, 2.7, -1); grp.scale.setScalar(1.45); g.add(grp);
-    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 1.5, 3.2, 18, 1, true), new THREE.MeshBasicMaterial({ color: 0xffb15c, transparent: true, opacity: 0.16, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 1.25, 3.2, 18, 1, true), new THREE.MeshBasicMaterial({ color: 0xffb15c, transparent: true, opacity: 0.055, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false }));
     beam.position.set(0, 1.5, -1); g.add(beam);
     const light = new THREE.PointLight(0xff7a32, 1.6, 9); light.position.set(0, 2.7, -1); g.add(light);
     const halo = new THREE.Mesh(new THREE.SphereGeometry(0.75, 12, 10), new THREE.MeshBasicMaterial({ color: 0xff8b3c, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending }));

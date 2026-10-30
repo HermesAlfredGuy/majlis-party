@@ -23,7 +23,7 @@ ffmpeg -y -v error \
   -filter_complex "\
 [1:v]trim=start=${START}:duration=${LEN},setpts=PTS-STARTPTS,split=2[a][b];\
 [a]crop=1600:900:0:0,scale=1440:810:flags=lanczos[A];\
-[b]crop=416:900:1600:0,scale=350:757:flags=lanczos,pad=374:810:12:14:color=0x0B1626,drawbox=x=10:y=12:w=354:h=786:color=0xC9A03F@0.5:t=2[B];\
+[b]crop=416:900:1600:0,scale=344:744:flags=lanczos,pad=372:772:14:14:color=0x0A0E13,pad=374:810:1:19:color=0x0B1626,drawbox=x=13:y=21:w=348:h=768:color=0x2A2016@1:t=2,drawbox=x=17:y=25:w=340:h=760:color=0xC9A03F@0.30:t=1[B];\
 [A][B]hstack=inputs=2,pad=1920:1080:41:150:color=0x0B1626,fps=30[body];\
 [0:v]scale=1920:1080,fps=30,format=yuv420p[ti];\
 [2:v]scale=1920:1080,fps=30,format=yuv420p[en];\
