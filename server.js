@@ -193,7 +193,7 @@ function startPlaying() {
 function endPlaying(force) {
   const g = GAMES[room.mode];
   let res = {};
-  try { res = g.finish(room, room.gameState) || {}; } catch (e) { console.error('finish failed', room.mode, e); }
+  try { res = S.settleResult(room, g.finish(room, room.gameState) || {}); } catch (e) { console.error('finish failed', room.mode, e); }
   const teamPoints = Object.assign({}, res.teamPoints || {});
   let betInfo = null;
   if (room.match && room.match.format === 'spotlight' && res.winnerTeam) {

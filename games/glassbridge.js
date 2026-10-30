@@ -93,7 +93,7 @@ const over = (room, st) => !!st.done;
 function finish(room, st) {
   const table = Object.values(st.teams).map(T => ({ team: T.team, pos: T.best, falls: T.falls, finished: T.finished, finishOrder: T.finishOrder || 99 }))
     .sort((a, b) => (b.pos - a.pos) || (a.falls - b.falls) || (a.finishOrder - b.finishOrder));
-  const teamPoints = {}; table.forEach((r, i) => { teamPoints[r.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(table);
   const playerPoints = {};
   for (const id of st.parts) { const p = room.players[id]; if (p) playerPoints[id] = 10 + Math.round((table.find(r => r.team === p.team).pos || 0) * 6); }
   const win = table[0];

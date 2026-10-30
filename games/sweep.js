@@ -104,8 +104,7 @@ function standings(room, st) {
 
 function finish(room, st) {
   const table = standings(room, st);
-  const teamPoints = {};
-  table.forEach((row, i) => { teamPoints[row.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(table);
   /* every player is paid for the seconds they lasted — a team cannot be carried by four people */
   const playerPoints = {};
   for (const id of st.parts) playerPoints[id] = Math.round((st.survive[id] || 0) / 1000) * 3;

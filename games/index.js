@@ -11,7 +11,7 @@ const MODULES = [
   require('./hotdallah'), require('./swordclash'), require('./trace'), require('./boxtower'), require('./luckypick'), require('./wordrace'),
   require('./quickdraw'), require('./spotlightrun'),
   require('./marathon'), require('./qahwa'), require('./tray'), require('./datecatch'),
-  require('./darts'),
+  require('./darts'), require('./shake'),
 ];
 const BY_ID = {};
 for (const g of MODULES) {

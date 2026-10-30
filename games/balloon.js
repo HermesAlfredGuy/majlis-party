@@ -40,7 +40,7 @@ function finish(room, st) {
     if (a.popped !== b.popped) return a.popped ? 1 : -1;               // popper loses
     return b.frac - a.frac;                                            // closest without popping wins
   });
-  const teamPoints = {}; rows.forEach((r, i) => { teamPoints[r.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(rows);
   const playerPoints = {};
   for (const id of st.parts) { const p = room.players[id]; if (p) playerPoints[id] = 8 + Math.round((st.teams[p.team].turns || 0) * 4); }
   const win = rows[0];

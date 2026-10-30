@@ -17,7 +17,7 @@ const sock = io(URL, { transports: ['websocket'] });
 sock.on('connect', () => {
   sock.emit('host_hello', { admin: true, key: KEY });
   const msg = { action, key: KEY };
-  if (value !== undefined) msg.value = isNaN(Number(value)) ? value : Number(value);
+  if (value !== undefined) { msg.value = isNaN(Number(value)) ? value : Number(value); msg.id = msg.value; }
   sock.emit('admin', msg, (r) => { console.log(JSON.stringify(r)); sock.close(); process.exit(r && r.ok === false ? 1 : 0); });
 });
 sock.on('connect_error', (e) => { console.error('connect_error', e.message); process.exit(2); });

@@ -97,7 +97,7 @@ function finish(room, st) {
     t.n++; if (!q.out) { t.alive++; t.last = Math.max(t.last, DURATION); } else t.last = Math.max(t.last, q.outAt || 0);
   }
   const table = Object.values(byTeam).sort((a, b) => b.alive - a.alive || b.last - a.last || a.team - b.team);
-  const teamPoints = {}; table.forEach((r, i) => { teamPoints[r.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(table);
   const playerPoints = {};
   for (const id of st.parts) {
     const q = st.P[id];

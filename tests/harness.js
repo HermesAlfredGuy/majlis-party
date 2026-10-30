@@ -27,6 +27,9 @@ function spotlight(room, ids) {
 function play(game, room, opts) {
   opts = opts || {};
   const dt = 50;
+  const latency = opts.latency || 0;
+  const queue = [];
+  const send = (p, msg) => { if (latency > 0) queue.push({ at: t + latency, p, msg }); else game.onInput(room, st, p, msg); };
   const st = game.create(room, { seed: opts.seed || 12345 });
   if (game.onStart) game.onStart(room, st);
   const frames = [];
@@ -45,12 +48,12 @@ function play(game, room, opts) {
       const h = view.bot;
       const key = id + ':' + h.kind;
       const since = t - (lastSend[key] || -1e9);
-      if (h.kind === 'tap' && since > 120) { game.onInput(room, st, p, { kind: 'tap' }); inputs++; lastSend[key] = t; }
-      else if (h.kind === 'arrow' && since > 260) { game.onInput(room, st, p, { kind: 'arrow', dir: h.dir }); inputs++; lastSend[key] = t; }
-      else if (h.kind === 'zone' && since > 400) { game.onInput(room, st, p, { kind: 'zone', zone: h.zone }); inputs++; lastSend[key] = t; }
-      else if (h.kind === 'vote' && since > 160) { game.onInput(room, st, p, { kind: 'vote', dir: h.dir }); inputs++; lastSend[key] = t; }
-      else if (h.kind === 'side' && since > 260) { game.onInput(room, st, p, { kind: 'side', side: h.side }); inputs++; lastSend[key] = t; }
-      else if (h.kind === 'dart' && since > 1200) { game.onInput(room, st, p, { kind: 'dart', x: h.x, y: h.y, power: h.power }); inputs++; lastSend[key] = t; }
+      if (h.kind === 'tap' && since > 120) { send(p, { kind: 'tap' }); inputs++; lastSend[key] = t; }
+      else if (h.kind === 'arrow' && since > 260) { send(p, { kind: 'arrow', dir: h.dir }); inputs++; lastSend[key] = t; }
+      else if (h.kind === 'zone' && since > 400) { send(p, { kind: 'zone', zone: h.zone }); inputs++; lastSend[key] = t; }
+      else if (h.kind === 'vote' && since > 160) { send(p, { kind: 'vote', dir: h.dir }); inputs++; lastSend[key] = t; }
+      else if (h.kind === 'side' && since > 260) { send(p, { kind: 'side', side: h.side }); inputs++; lastSend[key] = t; }
+      else if (h.kind === 'dart' && since > 1200) { send(p, { kind: 'dart', x: h.x, y: h.y, power: h.power }); inputs++; lastSend[key] = t; }
     }
     /* continuous games get their own cadence */
     for (const id of Object.keys(room.players)) {
@@ -85,6 +88,9 @@ function play(game, room, opts) {
         }
       }
     }
+    for (let i = queue.length - 1; i >= 0; i--) {
+      if (queue[i].at <= t) { const q = queue[i]; queue.splice(i, 1); try { game.onInput(room, st, q.p, q.msg); } catch (e) { /* a late input after the round is allowed to be ignored */ } }
+    }
     game.tick(room, st, dt);
     if (t % 1000 === 0) {
       try {
@@ -95,7 +101,7 @@ function play(game, room, opts) {
     }
   }
   if (!game.over(room, st)) game.tick(room, st, dt);
-  const result = game.finish(room, st);
+  const result = S.settleResult(room, game.finish(room, st));
   return { st, frames, result, inputs, ms: t, hostErr, ended: !!st.done, badViews };
 }
 

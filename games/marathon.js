@@ -97,7 +97,7 @@ function finish(room, st) {
     return { team: t, value: Math.round((T.answers ? T.correct / T.answers : 0) * 100), correct: T.correct, answers: T.answers, best: T.best };
   }).filter(r => r.answers > 0);
   rows.sort((a, b) => b.correct - a.correct || b.value - a.value);
-  const teamPoints = {}; rows.forEach((r, i) => { teamPoints[r.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(rows);
   const playerPoints = {};
   for (const id of st.parts) { const q = st.players[id]; if (q) playerPoints[id] = 10 + q.correct * 6; }
   /* the sharpest thumb of the night */

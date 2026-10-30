@@ -44,7 +44,7 @@ body.host{
 }
 body.host #stage{position:fixed;inset:0}
 body.host canvas#c{position:absolute;inset:0;width:100%;height:100%;display:block}
-body.host #hud{position:absolute;inset:0;padding:3vh 3vw;pointer-events:none;display:flex;flex-direction:column}
+body.host #hud{position:absolute;inset:0;padding:5vh 4vw;pointer-events:none;display:flex;flex-direction:column}
 body.host #hud>*{pointer-events:auto}
 body.host #top{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:1.6vw}
 body.host #title{display:flex;align-items:center;gap:14px}
@@ -54,23 +54,25 @@ body.host #t-ar{display:block;font-family:var(--display);font-weight:800;font-si
 body.host #t-en{display:block;font-size:clamp(9px,.82vw,14px);font-weight:700;letter-spacing:.28em;color:var(--brass);margin-top:6px}
 body.host #meta{display:flex;align-items:center;gap:10px;justify-self:start}
 body.host #top>.chip.mid{justify-self:center}
-body.host .chip{font-size:clamp(12px,1.05vw,19px);font-weight:700;padding:10px 20px;border-radius:999px;
+body.host .chip{font-size:clamp(15px,1.35vw,26px);font-weight:700;padding:12px 22px;border-radius:999px;
   background:rgba(11,22,38,.62);border:2px solid rgba(240,174,76,.42);color:var(--dim);white-space:nowrap}
 body.host .chip.gold{color:var(--lamp);border-color:rgba(240,174,76,.7)}
 body.host #timer{font-family:var(--num);font-weight:900;font-size:clamp(24px,2.6vw,46px);line-height:1;color:var(--lamp)}
 
 /* team plates: the only score that matters is the golden dallah count */
-body.host #scoreboard{position:absolute;left:50%;transform:translateX(-50%);width:min(1180px,76vw);bottom:6.6vh;
-  display:grid;grid-template-columns:1fr 1fr;gap:1.6vw;align-items:end}
+/* Team A is always the LEFT plate and Team B the right: the room splits the same way it sits.
+   direction:ltr pins that regardless of the document's rtl. */
+body.host #scoreboard{position:absolute;left:50%;transform:translateX(-50%);width:min(1320px,80vw);bottom:6.6vh;
+  display:grid;grid-template-columns:1fr 1fr;gap:1.6vw;align-items:end;direction:ltr}
 body.host .team{position:relative;overflow:hidden;border-radius:24px;padding:12px 20px 14px;
   background:linear-gradient(180deg,rgba(26,51,80,.94),rgba(11,22,38,.96));
   border:2px solid rgba(251,240,218,.14);box-shadow:0 18px 40px rgba(0,0,0,.42)}
 body.host .team .hem{position:absolute;inset-inline:0;top:0;height:5px;border-radius:0;background:var(--hex)}
 body.host .team .row{display:flex;align-items:center;gap:14px}
 body.host .team .cr{font-size:clamp(16px,1.5vw,26px);color:var(--hex)}
-body.host .team .nm{font-family:var(--display);font-weight:800;font-size:clamp(16px,1.7vw,30px);flex:1;white-space:nowrap}
-body.host .team .sc{font-family:var(--num);font-weight:900;font-size:clamp(30px,2.9vw,52px);line-height:1;color:var(--hex);font-variant-numeric:tabular-nums}
-body.host .team .pl{font-size:clamp(12px,1vw,17px);font-weight:700;opacity:.9;margin-top:4px;display:flex;gap:14px;align-items:center}
+body.host .team .nm{font-family:var(--display);font-weight:800;font-size:clamp(22px,2.4vw,46px);flex:1;white-space:nowrap}
+body.host .team .sc{font-family:var(--num);font-weight:900;font-size:clamp(34px,3.4vw,62px);line-height:1;color:var(--hex);font-variant-numeric:tabular-nums}
+body.host .team .pl{font-size:clamp(15px,1.3vw,24px);font-weight:700;opacity:.9;margin-top:4px;display:flex;gap:14px;align-items:center}
 body.host .team .pl b{font-family:var(--num);font-weight:900;color:var(--lamp)}
 body.host .team .bar{height:4px;border-radius:99px;background:rgba(255,255,255,.1);margin-top:7px;overflow:hidden}
 body.host .team .bar>i{display:block;height:100%;border-radius:99px;background:var(--hex);transition:width .5s cubic-bezier(.2,.9,.3,1)}
@@ -81,8 +83,8 @@ body.host #centre>*{pointer-events:none}
 body.host .card{background:linear-gradient(180deg,rgba(26,51,80,.94),rgba(11,22,38,.97));border:2px solid rgba(251,240,218,.16);
   border-radius:var(--radius);padding:26px 34px;box-shadow:var(--glow);animation:rise .32s cubic-bezier(.2,.9,.3,1)}
 body.host .card.bare{background:none;border:none;box-shadow:none;padding:0;animation:none}
-body.host .card h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,3.1vw,54px);margin:0 0 8px;line-height:1.1}
-body.host .card .how{font-size:clamp(13px,1.1vw,20px);line-height:1.6;color:var(--dim);margin-top:8px}
+body.host .card h1{font-family:var(--display);font-weight:800;font-size:clamp(32px,3.6vw,64px);margin:0 0 8px;line-height:1.1}
+body.host .card .how{font-size:clamp(16px,1.3vw,24px);line-height:1.6;color:var(--dim);margin-top:8px}
 body.host .card .tag{display:inline-block;font-size:clamp(10px,.8vw,13px);font-weight:700;letter-spacing:.14em;padding:7px 16px;border-radius:999px;
   background:rgba(240,174,76,.18);border:1px solid rgba(240,174,76,.5);color:var(--lamp);margin-bottom:10px}
 body.host .wheelcard{position:absolute;left:50%;transform:translateX(-50%);bottom:11.5vh;text-align:center;max-width:80vw}
@@ -105,8 +107,8 @@ body.host #gamelabel{position:absolute;bottom:1.6vh;inset-inline:0;text-align:ce
 body.host #rulebar{position:absolute;top:11.5vh;left:50%;transform:translateX(-50%);z-index:5;max-width:min(760px,66vw)}
 body.host .rule{display:flex;align-items:center;gap:16px;padding:12px 22px;border-radius:999px;
   background:rgba(11,22,38,.78);border:2px solid rgba(240,174,76,.4);backdrop-filter:blur(6px)}
-body.host .rule .rt b{font-family:var(--display);font-weight:800;font-size:clamp(15px,1.35vw,23px);display:block}
-body.host .rule .rt span{font-size:clamp(11px,.92vw,16px);color:var(--dim)}
+body.host .rule .rt b{font-family:var(--display);font-weight:800;font-size:clamp(19px,1.8vw,34px);display:block}
+body.host .rule .rt span{font-size:clamp(14px,1.15vw,22px);color:var(--dim)}
 body.host .rule .ric{font-size:clamp(18px,1.6vw,26px)}
 body.host #voterail{position:absolute;bottom:19vh;inset-inline:3vw;display:flex;flex-direction:column;gap:8px;align-items:center}
 body.host .vote{display:flex;gap:12px;align-items:center;padding:10px 18px;border-radius:999px;
@@ -158,7 +160,7 @@ body.host .boardhud .dicetag .d{width:clamp(38px,3.4vw,62px);height:clamp(38px,3
   box-shadow:0 10px 22px rgba(0,0,0,.4)}
 body.host .boardhud .dicetag .who{font-weight:700;font-size:clamp(12px,1.05vw,18px);color:var(--dim)}
 body.host .boardhud .landing{position:absolute;left:50%;bottom:16.4vh;transform:translateX(-50%);display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:70vw}
-body.host .boardhud .landing>div{padding:10px 18px;border-radius:999px;font-weight:700;font-size:clamp(13px,1.15vw,20px);
+body.host .boardhud .landing>div{padding:12px 20px;border-radius:999px;font-weight:700;font-size:clamp(16px,1.35vw,24px);
   background:rgba(11,22,38,.88);border:2px solid var(--hex);color:var(--cream);animation:rise .3s ease}
 body.host .boardhud .landing b{color:var(--hex)}
 body[data-phase="board"] #centre{display:none}

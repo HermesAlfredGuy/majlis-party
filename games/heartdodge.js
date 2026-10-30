@@ -120,7 +120,7 @@ function finish(room, st) {
     t.survive += st.live[id] ? DURATION : (st.players[id].outAt || 0);
   }
   const table = Object.values(byTeam).sort((a, b) => b.alive - a.alive || b.survive - a.survive || a.team - b.team);
-  const teamPoints = {}; table.forEach((r, i) => { teamPoints[r.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(table);
   const playerPoints = {};
   for (const id of st.parts) playerPoints[id] = 8 + Math.round((st.live[id] ? DURATION : (st.players[id].outAt || 0)) / 1000) * 3;
   let best = null;

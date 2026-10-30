@@ -549,7 +549,8 @@
   }
   function toggleAdmin() {
     adminOpen = !adminOpen; CL($('#admin'), 'on', adminOpen);
-    if (adminOpen) { buildAdmin(); paintAdmin(state || { idx: -1, length: 0 }); }
+    /* build once: reopening the panel must not replace the player rows under the host's finger */
+    if (adminOpen) { if (!adminBuilt) buildAdmin(); paintAdmin(state || { idx: -1, length: 0 }); }
   }
 
   /* ───────────────────────────────────────────── frame */

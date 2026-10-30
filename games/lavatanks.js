@@ -99,8 +99,7 @@ function finish(room, st) {
   const winner = st.winner ? st.tanks.find(t => t.id === st.winner) || st.tanks[0] : st.tanks[0];
   if (!st.tanks.length) return { winnerTeam: null, summary: 'لم يصل أحد', teamPoints: {}, playerPoints: {}, crowns: [], table: [] };
   const ordered = st.tanks.slice().sort((a, b) => (b.alive - a.alive) || (b.hp - a.hp));
-  const teamPoints = {};
-  ordered.forEach((T, i) => { teamPoints[T.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(ordered, S.TEAM_IDS);
   const playerPoints = {};
   for (const T of st.tanks) playerPoints[T.id] = 30 + T.hp * 15;
   const win = ordered[0];

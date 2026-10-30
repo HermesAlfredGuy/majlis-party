@@ -86,10 +86,20 @@
 
   /* player rows are keyed by id: created once, then only text/attributes change */
   const rows = new Map();
+  let empties = 0;
   function renderPlayers(list) {
     const box = $('#players');
-    if (!list.length) { if (!box.dataset.empty) { box.dataset.empty = '1'; box.innerHTML = '<div class="tiny">لا لاعبين بعد</div>'; } rows.clear(); return; }
-    if (box.dataset.empty) { box.innerHTML = ''; delete box.dataset.empty; }
+    /* A single empty reply is not the room emptying: a dropped admin round-trip must not wipe 45 rows and force
+     * every one of them to be rebuilt on the next poll. Two empties in a row is real. */
+    if (!list.length) {
+      empties++;
+      if (empties < 2 && rows.size) return;
+      if (!box.dataset.empty) { box.dataset.empty = '1'; box.innerHTML = '<div class="tiny">لا لاعبين بعد</div>'; }
+      rows.clear();
+      return;
+    }
+    empties = 0;
+    if (box.dataset.empty) { box.innerHTML = ''; delete box.dataset.empty; for (const r of rows.values()) box.append(r.d); }
     const keep = new Set();
     list.forEach(p => {
       keep.add(p.id);
@@ -113,7 +123,10 @@
       const st = p.afk ? '1' : '0';
       if (r.afk.dataset.state !== st) { r.afk.dataset.state = st; r.afk.textContent = p.afk ? '↩' : 'AFK'; }
     });
-    for (const [id, r] of rows) if (!keep.has(id)) { r.d.remove(); rows.delete(id); }
+    /* a dropped player keeps its row, only hidden: on rejoin the same node returns, so the host's touch target
+       (especially an AFK mid-toggle) never disappears under their finger */
+    for (const [id, r] of rows) if (!keep.has(id)) { r.d.style.display = 'none'; r.gone = true; }
+    for (const [id, r] of rows) if (keep.has(id) && r.gone) { r.d.style.display = ''; r.gone = false; }
   }
 
   function refresh() {

@@ -6,8 +6,12 @@
 'use strict';
 const S = require('../lib/sim');
 
-const DURATION = 40000, ATTEMPTS = 3, TARGET = 0.62, PERFECT = 0.06, SPILL = 0.985;
-const POUR_RATE = 0.34, MAX_ATTEMPT = 6200, RESET_MS = 1000, DROP_MS = 320;
+/* Owner's note, honoured: the drink is hot and the goal is a FINJAN (فنجان), not the tall cup.
+ * The line sits at 94% — nearly full — and the perfect window is a slim ±2%. Anywhere above the line costs
+ * the attempt (scald), which is exactly the "overfill = poured on the hand" rule. Pour rate is slower so the
+ * fine stop is a skill, not a reflex. */
+const DURATION = 40000, ATTEMPTS = 3, TARGET = 0.94, PERFECT = 0.02, SPILL = 0.97;
+const POUR_RATE = 0.26, MAX_ATTEMPT = 6200, RESET_MS = 1000, DROP_MS = 320;
 
 function create(room, opts) {
   const players = S.participants(room).sort((a, b) => a.joinedAt - b.joinedAt);
@@ -31,8 +35,8 @@ function onInput(room, st, p, msg) {
 
 function closeAttempt(q, st, why) {
   const d = Math.abs(q.fill - TARGET);
-  let score = d <= PERFECT ? 100 : Math.max(0, Math.round(100 - d * 300));
-  if (why === 'spill') { score = 0; q.flash = 'فاضت!'; st.spills++; const T = st.team[q.team]; if (T) T.spills++; }
+  let score = d <= PERFECT ? 100 : Math.max(0, Math.round(100 - d * 320));
+  if (why === 'spill') { score = 0; q.flash = 'سكبتها على اليد!'; st.spills++; const T = st.team[q.team]; if (T) T.spills++; }
   else if (score >= 100) { q.flash = 'على الخط! ✨'; const T = st.team[q.team]; if (T) T.perfect++; }
   else q.flash = score > 0 ? Math.round(score) + ' نقطة' : 'بعيد';
   q.flashUntil = st.t + 900;
@@ -78,7 +82,7 @@ function finish(room, st) {
     return { team: t, value: T.n ? Math.round(T.sum / T.n) : 0, best: T.best, perfect: T.perfect, spills: T.spills, pours: T.n };
   }).filter(r => r.pours > 0);
   rows.sort((a, b) => b.value - a.value || b.best - a.best);
-  const teamPoints = {}; rows.forEach((r, i) => { teamPoints[r.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(rows);
   const playerPoints = {};
   for (const id of st.parts) { const q = st.players[id]; if (q) playerPoints[id] = 8 + q.total; }
   const top = st.parts.slice().sort((a, b) => st.players[b].total - st.players[a].total)[0];
@@ -113,13 +117,13 @@ function padView(room, st, p) {
   if (p.bot && q.state === 'pour') {
     /* a bot pours while it is short of the line and lets go just above it — the same decision a person makes */
     const seed = (parseInt(String(p.id).replace(/\D/g, ''), 10) || 3) * 37 % 100;
-    const aim = TARGET + (seed < 25 ? 0.12 : seed < 55 ? 0.04 : seed < 85 ? 0.012 : -0.02); /* clumsy, decent, sharp */
+    const aim = TARGET + (seed < 25 ? 0.045 : seed < 55 ? 0.02 : seed < 85 ? 0.006 : -0.01); /* clumsy, decent, sharp */
     hint = { kind: 'hold', on: q.fill < aim };
   }
   const pct = Math.round(q.fill * 100), tgt = Math.round(TARGET * 100);
   return {
-    head: q.state === 'done' ? 'انتهت محاولاتك' : q.state === 'reset' ? 'فنجان جديد…' : 'صبّ حتى الخط',
-    sub: q.state === 'done' ? 'شاهد الفريق' : `المحاولة ${S.ar(Math.min(ATTEMPTS, q.attempt + 1))} من ${S.ar(ATTEMPTS)} — الخط عند ${S.ar(tgt)}٪`,
+    head: q.state === 'done' ? 'انتهت محاولاتك' : q.state === 'reset' ? 'فنجان جديد…' : 'صبّ حتى الخط تقريباً',
+    sub: q.state === 'done' ? 'شاهد الفريق' : `المحاولة ${S.ar(Math.min(ATTEMPTS, q.attempt + 1))} من ${S.ar(ATTEMPTS)} — ${S.ar(tgt)}٪ وأقل`,
     controls: { type: 'tilt', axis: 'pour', disabled: q.state !== 'pour' || st.done, invert: false, label: 'أمِل الجوال للصبّ' },
     stats: [{ k: 'الآن', v: q.state === 'pour' ? S.ar(pct) + '٪' : '—' }, { k: 'أفضل', v: S.ar(q.best) }, { k: 'المجموع', v: S.ar(q.total) }],
     meters: [{ k: 'الفنجان', pct: Math.min(100, pct), target: tgt }],
@@ -131,6 +135,6 @@ function padView(room, st, p) {
 
 module.exports = {
   id: 'qahwa', name: { ar: 'صبّ القهوة', en: 'Qahwa Pour' }, emoji: '☕',
-  tagline: 'قف عند الخط', how: 'أمِل جوالك لتصبّ القهوة، وأعِده ليتوقف السكب على الخط. ثلاث محاولات — الفائض يُسقط المحاولة.',
+  tagline: 'قف عند الخط', how: 'املأ الفنجان حتى شبه الممتلئ وتوقف قبل الحافة — الزائد يصبّ على اليد ويُسقط المحاولة. ثلاث محاولات.',
   formats: ['team', 'ffa', 'spotlight'], durationMs: DURATION, create, onStart: () => {}, onInput, tick, over, finish, hostView, padView,
 };

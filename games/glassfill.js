@@ -24,7 +24,7 @@ function finish(room, st) {
     return { team: T.team, value: Math.round(T.value * 100) / 100, frac: Math.round(Math.min(1, T.value) * 100) / 100, popped: T.popped, poppedAt: T.poppedAt, turns: Math.round(T.turns * 10) / 10, members: T.rot.length };
   });
   rows.sort((a, b) => (a.popped !== b.popped ? (a.popped ? 1 : -1) : b.frac - a.frac));
-  const teamPoints = {}; rows.forEach((r, i) => { teamPoints[r.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(rows);
   const playerPoints = {};
   for (const id of st.parts) { const p = room.players[id]; if (p) playerPoints[id] = 8 + Math.round((st.teams[p.team].turns || 0) * 4); }
   const win = rows[0];

@@ -72,7 +72,7 @@ function finish(room, st) {
     t.score += Math.max(0, val); t.n++; if (st.finishAt[id] != null) t.finished++;
   }
   const table = Object.values(byTeam).sort((a, b) => b.finished - a.finished || b.score - a.score || a.team - b.team);
-  const teamPoints = {}; table.forEach((r, i) => { teamPoints[r.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(table);
   const playerPoints = {};
   for (const id of st.parts) {
     const p = room.players[id];

@@ -282,7 +282,7 @@
   const FACE_PLANE = new THREE.PlaneGeometry(0.50, 0.50);
   const GHUTRA = new THREE.SphereGeometry(0.322, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.34);
   const IQAL = new THREE.TorusGeometry(0.305, 0.032, 6, 20);
-  const SCARF = new THREE.TorusGeometry(0.30, 0.075, 8, 18);
+  const SCARF = new THREE.TorusGeometry(0.40, 0.10, 8, 20);
   const ARM = new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.085, 0.36, 4, 8) : new THREE.CylinderGeometry(0.085, 0.085, 0.5, 8);
   const BLOB = new THREE.PlaneGeometry(1.15, 1.15);
 
@@ -316,6 +316,8 @@
     };
     parts.thobe.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3);
     parts.scarf.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3);
+    parts.iqal.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(max * 3), 3);
+    parts.iqal.instanceColor.setUsage(THREE.DynamicDrawUsage);
     parts.thobe.instanceColor.setUsage(THREE.DynamicDrawUsage);
     parts.scarf.instanceColor.setUsage(THREE.DynamicDrawUsage);
 
@@ -345,7 +347,8 @@
         v.set(c.x, y + 1.155 * s, c.z); e.set(0, c.rot || 0, 0); q.setFromEuler(e);
         m4.compose(v, q, sc); parts.ghutra.setMatrixAt(i, m4);
         v.set(c.x, y + 1.30 * s, c.z); m4.compose(v, q, sc); parts.iqal.setMatrixAt(i, m4);
-        v.set(c.x, y + 0.86 * s, c.z); e.set(Math.PI / 2, 0, 0); q.setFromEuler(e);
+        /* the iqal takes the team colour: the head is the thing you see over a crowd */
+        v.set(c.x, y + 1.00 * s, c.z); e.set(Math.PI / 2, 0, 0); q.setFromEuler(e);
         m4.compose(v, q, sc); parts.scarf.setMatrixAt(i, m4);
         /* arms swing with the walk, and both rise when the character jumps */
         const sw = (c.swing == null ? 0 : c.swing) + Math.sin(t * 6 + i) * (c.walk ? 0.35 : 0.06);
@@ -360,6 +363,7 @@
         const team = (palette && palette[c.team]) || { hex: '#3ED9B0' };
         col.set(team.hex); parts.thobe.setColorAt(i, col);
         col.set(team.hex).multiplyScalar(0.85); parts.scarf.setColorAt(i, col);
+        col.set(team.hex); parts.iqal.setColorAt(i, col);
       }
       for (const k of Object.keys(parts)) {
         parts[k].count = n;
@@ -367,6 +371,7 @@
       }
       if (parts.thobe.instanceColor) parts.thobe.instanceColor.needsUpdate = true;
       if (parts.scarf.instanceColor) parts.scarf.instanceColor.needsUpdate = true;
+      if (parts.iqal.instanceColor) parts.iqal.instanceColor.needsUpdate = true;
       return n;
     };
     A.Rig.prototype.parts = parts;

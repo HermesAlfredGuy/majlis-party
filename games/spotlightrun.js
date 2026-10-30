@@ -85,7 +85,7 @@ function finish(room, st) {
     T.n++; T.score += rank.length - i; T.best = Math.min(T.best, i);
   });
   const table = Object.values(byTeam).sort((a, b) => b.score - a.score || a.best - b.best);
-  const teamPoints = {}; table.forEach((r, i) => { teamPoints[r.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(table);
   const playerPoints = {}; rank.forEach((id, i) => { playerPoints[id] = 4 + st.players[id].hp * 9 + (rank.length - i); });
   const win = table[0];
   return {

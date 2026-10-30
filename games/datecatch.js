@@ -64,7 +64,7 @@ function finish(room, st) {
     return { team: t, value: T.n ? Math.round((T.catches / T.n) * 10) / 10 : 0, best: T.best, n: T.n };
   }).filter(r => r.n > 0);
   rows.sort((a, b) => b.value - a.value || b.best - a.best);
-  const teamPoints = {}; rows.forEach((r, i) => { teamPoints[r.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(rows);
   const playerPoints = {};
   for (const id of st.parts) { const q = st.players[id]; if (q) playerPoints[id] = 8 + q.catches * 5; }
   const top = st.parts.slice().sort((a, b) => st.players[b].catches - st.players[a].catches)[0];

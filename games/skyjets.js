@@ -115,7 +115,7 @@ function rows(st) {
 
 function finish(room, st) {
   const table = rows(st);
-  const teamPoints = {}; table.forEach((r, i) => { teamPoints[r.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(table);
   const playerPoints = {};
   for (const id of st.parts) { const p = room.players[id]; if (p) playerPoints[id] = 10 + Math.round((st.jets[p.team] && st.jets[p.team].voters ? 20 : 0)); }
   const win = table[0];

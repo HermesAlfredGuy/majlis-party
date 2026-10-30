@@ -185,17 +185,21 @@
       const lamp = new THREE.PointLight(new THREE.Color(t.hex), 0.5, 5); lamp.position.set(x, 1.9, z + 0.8); g.add(lamp);
       const rim = new THREE.Mesh(new THREE.TorusGeometry(1.02, 0.03, 6, 30), new THREE.MeshBasicMaterial({ color: new THREE.Color(t.hex), transparent: true, opacity: 0.6 }));
       rim.rotation.x = Math.PI / 2; rim.position.set(x, 0.12, z); g.add(rim);
-      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.24, 0.56, 18), new THREE.MeshStandardMaterial({ color: 0xf2efe3, roughness: 0.35 }));
-      cup.position.set(x, 0.4, z); g.add(cup);
-      const fill = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.22, 0.5, 18), new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.5 }));
-      fill.position.set(x, 0.38, z); fill.scale.y = 0.01; g.add(fill);
-      const line = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.018, 6, 26), new THREE.MeshBasicMaterial({ color: 0xe0b558 }));
-      line.rotation.x = Math.PI / 2; line.position.set(x, 0.62, z); g.add(line);
+      /* a finjan, not the tall cup: small, handleless, almost to the brim is the whole game (target 94%, the
+       * rest of the height is the ten percent that scalds a hand) */
+      const saucer = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.26, 0.03, 20), new THREE.MeshStandardMaterial({ color: 0xE8D5A8, roughness: 0.7 }));
+      saucer.position.set(x, 0.135, z); g.add(saucer);
+      const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.12, 0.26, 18), new THREE.MeshStandardMaterial({ color: 0xf2efe3, roughness: 0.3 }));
+      cup.position.set(x, 0.28, z); g.add(cup);
+      const fill = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.105, 0.235, 18), new THREE.MeshStandardMaterial({ color: 0x5a3a1a, roughness: 0.5 }));
+      fill.position.set(x, 0.265, z); fill.scale.y = 0.01; g.add(fill);
+      const line = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.022, 6, 26), new THREE.MeshBasicMaterial({ color: 0xe0b558 }));
+      line.rotation.x = Math.PI / 2; line.position.set(x, 0.395, z); g.add(line);
       const dallah = new THREE.Mesh(new THREE.SphereGeometry(0.3, 14, 12), brass); dallah.scale.set(1, 1.2, 1); dallah.position.set(x - 0.62, 0.42, z); g.add(dallah);
-      const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.02, 0.5, 8), brass); spout.position.set(x - 0.36, 0.62, z); spout.rotation.z = -0.6; g.add(spout);
+      const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.02, 0.5, 8), brass); spout.position.set(x - 0.30, 0.55, z); spout.rotation.z = -0.6; g.add(spout);
       const stream = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.46, 8), new THREE.MeshBasicMaterial({ color: 0x9a6428, transparent: true, opacity: 0.9 }));
-      stream.position.set(x - 0.06, 0.66, z); stream.visible = false; g.add(stream);
-      items[t.i] = { x, z, fill, stream, cup };
+      stream.position.set(x - 0.03, 0.56, z); stream.visible = false; g.add(stream);
+      items[t.i] = { x, z, fill, stream, cup, baseY: fill.position.y - (0.235 / 2) };
     });
     return { g, items };
   };
@@ -651,6 +655,28 @@
     return { g, cones };
   };
 
+  /* Shake the Laban: a plastic can per team that swells with pressure, with the safety line on it. */
+  stages.shake = () => {
+    const g = makeStage();
+    const items = {};
+    TEAMS.forEach((t, i) => {
+      const x = (i - 0.5) * 5.4, z = -7.6;
+      const base = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.66, 0.14, 22), new THREE.MeshStandardMaterial({ color: 0x2c2118, roughness: 0.85 }));
+      base.position.set(x, 0.07, z); g.add(base);
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.44, 1.5, 24), new THREE.MeshStandardMaterial({ color: 0xE9F4F8, roughness: 0.5 }));
+      body.position.set(x, 0.9, z); g.add(body);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.445, 0.445, 0.34, 24), new THREE.MeshStandardMaterial({ color: new THREE.Color(t.hex), roughness: 0.5 }));
+      band.position.set(x, 0.5, z); g.add(band);
+      const line = new THREE.Mesh(new THREE.TorusGeometry(0.455, 0.02, 6, 28), new THREE.MeshBasicMaterial({ color: 0xe0b558 }));
+      line.rotation.x = Math.PI / 2; line.position.set(x, 1.32, z); g.add(line);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.22, 16), new THREE.MeshStandardMaterial({ color: 0x1f4e8c, roughness: 0.4 }));
+      cap.position.set(x, 1.76, z); g.add(cap);
+      const lamp = new THREE.PointLight(new THREE.Color(t.hex), 0.5, 5); lamp.position.set(x, 2.0, z + 0.8); g.add(lamp);
+      items[t.i] = { x, z, body, band, cap };
+    });
+    return { g, items };
+  };
+
   function buildStage(id) {
     clearStage();
     stageId = id;
@@ -945,8 +971,21 @@
         const it = stage.items[t.team]; if (!it) return;
         const f = Math.max(0.005, Math.min(0.99, t.fill || 0));
         it.fill.scale.y = f;
-        it.fill.position.y = 0.13 + 0.25 * f;
+        /* the finjan is 0.235 tall with its bottom at baseY: keep the fill inside the cup as it rises */
+        it.fill.position.y = (it.baseY != null ? it.baseY : it.fill.position.y) + 0.235 * f / 2;
         it.stream.visible = !!t.pouring;
+      });
+    }
+    if (s.mode === 'shake' && stage.items) {
+      (game.press || []).forEach(t => {
+        const it = stage.items[t.team]; if (!it) return;
+        const f = Math.max(0, Math.min(1.2, (t.press || 0) / 100));
+        const swell = 1 + f * 0.22;
+        it.body.scale.set(swell, 1, swell);
+        it.band.scale.set(swell, 1, swell);
+        it.body.position.y = 0.9 + f * 0.05;
+        it.cap.position.y = 1.76 + f * 0.16 + (game.win === t.team ? Math.sin(now / 60) * 0.12 : 0);
+        it.cap.position.x = it.x + (game.win === t.team ? Math.sin(now / 90) * 0.18 : 0);
       });
     }
     if (s.mode === 'tray' && stage.items) {
@@ -1106,6 +1145,7 @@
     spotlightrun: { p: [0, 13.4, 12.6], l: [0, 0.2, -0.4] },
     marathon: { p: [0, 6.4, 10.2], l: [0, 1.5, -7.5] },
     qahwa: { p: [0, 3.0, 4.6], l: [0, 0.6, -7.6] },
+    shake: { p: [0, 3.2, 4.6], l: [0, 0.8, -7.6] },
     tray: { p: [0, 2.7, 4.4], l: [0, 1.2, -6.4] },
     datecatch: { p: [0, 3.6, 3.0], l: [0, 1.2, -5.4] },
     darts: { p: [0, 3.5, 7.6], l: [0, 3.0, -2.0] },

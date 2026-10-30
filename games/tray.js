@@ -62,7 +62,7 @@ function finish(room, st) {
     return { team: t, value: T.n ? Math.round(T.sum / T.n / 100) / 10 : 0, spills: T.spills, n: T.n };
   }).filter(r => r.n > 0);
   rows.sort((a, b) => b.value - a.value);
-  const teamPoints = {}; rows.forEach((r, i) => { teamPoints[r.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(rows);
   const playerPoints = {};
   for (const id of st.parts) { const q = st.players[id]; if (q) playerPoints[id] = 8 + Math.round(q.inMs / 400); }
   const top = st.parts.slice().sort((a, b) => st.players[b].inMs - st.players[a].inMs)[0];

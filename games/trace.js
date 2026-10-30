@@ -83,7 +83,7 @@ function finish(room, st) {
     T.sum += v; T.n++; T.top = Math.max(T.top, v);
   }
   const table = Object.values(byTeam).map(T => ({ team: T.team, value: T.n ? Math.round((T.sum / T.n) * 10) / 10 : 0, top: Math.round(T.top) })).sort((a, b) => b.value - a.value);
-  const teamPoints = {}; table.forEach((r, i) => { teamPoints[r.team] = S.placePoints(i); });
+  const teamPoints = S.teamTablePoints(table);
   const playerPoints = {}; for (const id of st.parts) playerPoints[id] = Math.round(st.scores[id] || 0);
   const win = table[0];
   const crowns = bestId ? [{ playerId: bestId, label: 'أدقّ يد', detail: `${Math.round(bestV)}٪` }] : [];
