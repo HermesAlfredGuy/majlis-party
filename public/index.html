@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مجلس بارتي — Majlis Party</title>
+<link rel="stylesheet" href="/majlis.css">
+<style>
+  body.plain{display:flex;align-items:center;justify-content:center;padding:24px}
+  .wrap{max-width:860px;width:100%;text-align:center}
+  h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,6vw,64px);margin:8px 0 4px}
+  .sub{color:var(--cream-dim);font-weight:700;margin-bottom:22px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:620px;margin:0 auto}
+  a.btn{display:block;padding:24px;border-radius:22px;text-decoration:none;color:var(--cream);font-family:var(--display);
+    font-weight:800;font-size:clamp(18px,2.4vw,26px);border:1.5px solid rgba(201,148,65,.4);
+    background:linear-gradient(180deg,rgba(42,33,84,.8),rgba(23,18,48,.9));box-shadow:var(--glow)}
+  a.btn.gold{background:linear-gradient(160deg,var(--lantern-2),var(--brass));color:#2a1b05;border-color:transparent}
+  a.btn small{display:block;font-family:var(--text);font-size:13px;font-weight:700;opacity:.7;margin-top:6px}
+  .qr{background:var(--cream);padding:12px;border-radius:22px;width:min(230px,58vw);margin:26px auto 10px;
+    box-shadow:0 0 0 6px rgba(201,148,65,.35),var(--glow)}
+  .qr img{width:100%;display:block;border-radius:8px}
+  .code{font-family:var(--display);font-weight:800;font-size:clamp(24px,3.6vw,38px);color:var(--lantern);letter-spacing:.04em}
+</style>
+</head>
+<body class="plain">
+<div class="wrap">
+  <div class="sadu"></div>
+  <h1>مجلس بارتي</h1>
+  <div class="sub">MAJLIS PARTY — العب من جوالك</div>
+  <div class="grid">
+    <a class="btn gold" href="/play">انضم كلاعب<small>Join as a player</small></a>
+    <a class="btn" href="/host">شاشة العرض<small>Projector host</small></a>
+  </div>
+  <div class="qr"><img src="/qr.png" alt="QR"></div>
+  <div class="code">امسح أو أدخل رمز الغرفة</div>
+  <div class="sub" style="margin-top:10px">لا تطبيق · لا تسجيل</div>
+</div>
+</body>
+</html>

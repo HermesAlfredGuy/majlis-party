@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مجلس بارتي — Majlis Party · Host</title>
+<link rel="preload" href="/vendor/baloo-800-arabic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/majlis.css">
+</head>
+<body class="host">
+<div id="stage">
+  <canvas id="c"></canvas>
+  <div id="hud">
+    <header id="top">
+      <div id="title">
+        <div id="crest">✦</div>
+        <div><b id="t-ar">مجلس بارتي</b><span id="t-en">MAJLIS PARTY</span></div>
+      </div>
+      <span class="chip mid" id="round">—</span>
+      <div id="meta"><span class="chip" id="format">—</span><span class="chip" id="playerschip">٠ لاعب</span><span id="timer"></span></div>
+    </header>
+    <div id="scoreboard"></div>
+    <div id="rulebar"></div>
+    <div id="dartlegend"></div>
+    <div id="centre"></div>
+    <div id="voterail"></div>
+    <div id="gamelabel"></div>
+    <div id="admin"></div>
+    <footer id="foot">
+      <div id="joinbox"><span id="joinline"></span></div>
+      <span id="hintline">A = لوحة التحكم · F = ملء الشاشة</span>
+      <button id="snd" class="snd" type="button" aria-pressed="true">🔊 الصوت</button>
+    </footer>
+  </div>
+  <div id="toast"></div>
+</div>
+<script src="/vendor/three.min.js"></script>
+<script src="/vendor/gltf-loader.js"></script>
+<script src="/majlis-glb.js"></script>
+<script src="/majlis-audio.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="/host-scene.js"></script>
+<script src="/host.js"></script>
+</body>
+</html>

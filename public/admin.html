@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>تحكم مجلس بارتي — Admin</title>
+<link rel="stylesheet" href="/majlis.css">
+<style>
+  body.plain{padding:calc(2vh + 6px) 5vw 40px}
+  .keyrow{display:flex;gap:8px;margin-bottom:10px}
+  .keyrow input{flex:1}
+  .t{display:flex;gap:8px;align-items:center;font-size:13px;font-weight:700;padding:7px 0;border-bottom:1px dashed rgba(246,234,210,.12)}
+  .t .sw{width:10px;height:10px;border-radius:50%;flex:none}
+  .t .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .t button{padding:6px 10px;font-size:12px;border-radius:10px;border:1px solid rgba(201,148,65,.35);background:rgba(255,255,255,.07);color:var(--cream);font:inherit;font-weight:700}
+  .t button[data-kick]{border-color:rgba(179,56,46,.6)}
+  #toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);max-width:92vw;text-align:center;padding:9px 16px;border-radius:999px;
+    font-weight:700;font-size:13px;background:rgba(21,16,45,.96);border:1.5px solid var(--lantern);color:var(--lantern);opacity:0;transition:.2s}
+  #toast.on{opacity:1}
+</style>
+</head>
+<body class="plain">
+<div class="wrap">
+  <div class="sadu"></div>
+  <h1>تحكم الحفلة</h1>
+  <div class="tiny">المضيف — من جوالك</div>
+
+  <div class="card">
+    <div class="keyrow"><input id="key" placeholder="مفتاح الإدارة" value=""><button class="btn primary" id="save" style="width:96px">حفظ</button></div>
+    <div class="row">
+      <button class="btn primary" data-act="party_start" style="flex:1">▶ بدء / إعادة</button>
+      <button class="btn" data-act="pause_toggle" style="flex:1">⏸ إيقاف</button>
+    </div>
+    <div class="grid2" style="margin-top:8px">
+      <button class="btn" data-act="skip">⏭ تخطي</button>
+      <button class="btn" data-act="end_now">⏹ إنهاء الجولة</button>
+      <button class="btn" data-act="restart">↻ إعادة اللعبة</button>
+      <button class="btn" data-act="respin">🎡 إعادة القرعة</button>
+      <button class="btn" data-act="reroll">🎰 إعادة النجوم</button>
+      <button class="btn" data-act="undo">↩ تراجع</button>
+      <button class="btn" data-act="lobby">🏠 اللوبي</button>
+      <button class="btn" data-act="rebalance">⚖ توزيع الفرق</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tiny">نقاط الفرق (+10)</div>
+    <div class="grid2" id="teams"></div>
+  </div>
+
+  <div class="card">
+    <div class="tiny">طول الحفلة</div>
+    <div class="grid2"><button class="btn" data-len="4">4 ألعاب</button><button class="btn" data-len="6">6</button><button class="btn" data-len="8">8</button><button class="btn" data-len="10">10</button></div>
+  </div>
+
+  <div class="card"><div class="tiny">اللاعبون</div><div id="players"></div></div>
+</div>
+<div id="toast"></div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+(function () {
+  'use strict';
+  const $ = (s) => document.querySelector(s);
+  const socket = io({ transports: ['websocket', 'polling'] });
+  let KEY = (new URLSearchParams(location.search).get('key') || localStorage.getItem('mj_admin_key') || '').toUpperCase();
+  let TEAMS = [{ i: 1, ar: 'الفيروز', hex: '#2fd0b4' }, { i: 2, ar: 'العنبر', hex: '#f6a93b' }];
+  $('#key').value = KEY;
+  function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(t.__t); t.__t = setTimeout(() => t.classList.remove('on'), 2200); }
+  function send(o) { socket.emit('admin', Object.assign({ key: KEY }, o), (r) => { if (!r) return; toast(r.ok === false ? ('⚠ ' + (r.error || 'خطأ')) : (r.text ? '✔ ' + r.text : '')); refresh(); }); }
+  $('#save').addEventListener('click', () => { KEY = $('#key').value.trim().toUpperCase(); localStorage.setItem('mj_admin_key', KEY); toast('تم الحفظ'); refresh(); });
+  document.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click', () => send({ action: b.dataset.act })));
+  document.querySelectorAll('[data-len]').forEach(b => b.addEventListener('click', () => send({ action: 'length', value: +b.dataset.len })));
+
+  /* team buttons are built from the server's own team list, once */
+  let teamsBuilt = false;
+  function buildTeams() {
+    if (teamsBuilt) return;
+    teamsBuilt = true;
+    const box = $('#teams'); box.innerHTML = '';
+    TEAMS.forEach(t => {
+      const b = document.createElement('button');
+      b.className = 'btn'; b.textContent = t.ar + ' +10'; b.style.borderColor = t.hex; b.style.color = t.hex;
+      b.addEventListener('click', () => send({ action: 'points', team: t.i, delta: 10, reason: 'host' }));
+      box.append(b);
+    });
+  }
+
+  /* player rows are keyed by id: created once, then only text/attributes change */
+  const rows = new Map();
+  function renderPlayers(list) {
+    const box = $('#players');
+    if (!list.length) { if (!box.dataset.empty) { box.dataset.empty = '1'; box.innerHTML = '<div class="tiny">لا لاعبين بعد</div>'; } rows.clear(); return; }
+    if (box.dataset.empty) { box.innerHTML = ''; delete box.dataset.empty; }
+    const keep = new Set();
+    list.forEach(p => {
+      keep.add(p.id);
+      let r = rows.get(p.id);
+      if (!r) {
+        const d = document.createElement('div'); d.className = 't';
+        const sw = document.createElement('span'); sw.className = 'sw';
+        const nm = document.createElement('span'); nm.className = 'nm';
+        const afk = document.createElement('button'); afk.dataset.afk = p.id;
+        const kick = document.createElement('button'); kick.dataset.kick = p.id; kick.textContent = '✕';
+        afk.addEventListener('click', () => send({ action: 'afk', playerId: p.id, afk: afk.dataset.state !== '1' }));
+        kick.addEventListener('click', () => send({ action: 'kick', playerId: p.id }));
+        d.append(sw, nm, afk, kick); box.append(d);
+        r = { d, sw, nm, afk, kick };
+        rows.set(p.id, r);
+      }
+      const t = TEAMS.find(x => x.i === p.team) || TEAMS[0];
+      if (r.sw.style.background !== t.hex) r.sw.style.background = t.hex;
+      const label = p.nick + (p.afk ? ' · AFK' : '');
+      if (r.nm.textContent !== label) r.nm.textContent = label;
+      const st = p.afk ? '1' : '0';
+      if (r.afk.dataset.state !== st) { r.afk.dataset.state = st; r.afk.textContent = p.afk ? '↩' : 'AFK'; }
+    });
+    for (const [id, r] of rows) if (!keep.has(id)) { r.d.remove(); rows.delete(id); }
+  }
+
+  function refresh() {
+    socket.emit('admin', { key: KEY, action: 'players' }, (r) => {
+      if (!r) return;
+      if (r.ok === false) { $('#players').textContent = 'مفتاح غير صحيح'; return; }
+      renderPlayers(r.players || []);
+    });
+  }
+  socket.on('connect', () => { socket.emit('host_hello', { admin: true, key: KEY }); refresh(); });
+  socket.on('host', (s) => {
+    if (s && s.teams && s.teams.length) {
+      const same = s.teams.length === TEAMS.length && s.teams.every((t, i) => t.i === TEAMS[i].i && t.ar === TEAMS[i].ar);
+      if (!same) { TEAMS = s.teams.map(t => ({ i: t.i, ar: t.ar, hex: t.hex })); teamsBuilt = false; }
+    }
+    buildTeams();
+  });
+  buildTeams();
+  setInterval(refresh, 5000);
+})();
+</script>
+</body>
+</html>
