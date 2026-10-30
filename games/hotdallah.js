@@ -91,7 +91,7 @@ function hostView(room, st) {
 }
 
 function padView(room, st, p) {
-  if (!st.live[p.id]) return { head: 'انفجرت في يدك', sub: 'شاهد البقية', controls: { type: 'none' }, stats: [{ k: 'المتبقّون', v: S.ar(alive(st).length) }], team: { i: (p.team || 1) - 1 } };
+  if (!st.live[p.id]) return { head: 'انفجرت في يدك', sub: 'شاهد البقية', controls: { type: 'none' }, watching: true, stats: [{ k: 'المتبقّون', v: S.ar(alive(st).length) }], team: { i: (p.team || 1) - 1 } };
   const holding = st.holder === p.id;
   return {
     head: holding ? 'الدلّة عندك! 🔥' : 'انتظر دورك',

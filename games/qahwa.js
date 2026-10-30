@@ -108,7 +108,7 @@ function hostView(room, st) {
 
 function padView(room, st, p) {
   const q = st.players[p.id];
-  if (!q) return { head: 'الجولة القادمة', controls: { type: 'none' }, stats: [], team: { i: (p.team || 1) - 1 } };
+  if (!q) return { head: 'الجولة القادمة', controls: { type: 'none' }, watching: true, stats: [], team: { i: (p.team || 1) - 1 } };
   let hint = null;
   if (p.bot && q.state === 'pour') {
     /* a bot pours while it is short of the line and lets go just above it — the same decision a person makes */

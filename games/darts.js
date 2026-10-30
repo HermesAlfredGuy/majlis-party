@@ -112,7 +112,7 @@ function hostView(room, st) {
 
 function padView(room, st, p) {
   const q = st.players[p.id];
-  if (!q) return { head: 'الجولة القادمة', controls: { type: 'none' }, stats: [], team: { i: (p.team || 1) - 1 } };
+  if (!q) return { head: 'الجولة القادمة', controls: { type: 'none' }, watching: true, stats: [], team: { i: (p.team || 1) - 1 } };
   const open = roundOpen(st);
   const used = q.thrown.filter(d => d.round === st.round).length;
   const left = Math.max(0, DARTS - used);

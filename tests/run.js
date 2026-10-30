@@ -3,7 +3,7 @@
 'use strict';
 const { execFileSync } = require('child_process');
 const path = require('path');
-const files = ['sim.test.js', 'pad-sync.test.js', 'dom-stability.test.js', 'picker.test.js'].filter(f => {
+const files = ['board.test.js', 'sim.test.js', 'pad-sync.test.js', 'dom-stability.test.js'].filter(f => {
   try { require('fs').accessSync(path.join(__dirname, f)); return true; } catch (e) { return false; }
 });
 let fails = 0;

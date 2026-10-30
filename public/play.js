@@ -730,6 +730,87 @@
     }
   }
 
+
+  /* ---------------------------------------------------------------- board + cheer */
+  let boardKey = '';
+  function boardPanel(s) {
+    const b = s.board || {};
+    const key = 'board|' + (b.vote ? 'vote' : 'walk');
+    if (boardKey !== key) {
+      boardKey = key;
+      screen.textContent = '';
+      const card = E('div', 'card'); card.id = 'playcard';
+      card.style.cssText = 'display:flex;flex-direction:column;gap:12px;flex:1';
+      const head = E('h1', null, b.vote ? 'الطريق يتفرّع' : 'على اللوحة');
+      const sub = E('div', 'tiny', b.vote ? 'صوّتوا — الأغلبية تختار للفريق' : 'رمي النرد الآن… شاهدوا الشاشة');
+      sub.style.cssText = 'font-size:14px;opacity:.75;margin-top:-6px';
+      const line = E('div', 'starline'); line.id = 'bline';
+      card.append(head, sub, line);
+      if (b.vote) {
+        const wrap = E('div', 'votebig'); wrap.id = 'bvote';
+        (b.vote.options || []).forEach(o => {
+          const btn = E('button', 'opt');
+          const bb = E('b', null, o.ar);
+          const ss = E('span', null, o.note || '');
+          btn.append(bb, ss); btn.dataset.id = o.id;
+          btn.addEventListener('click', () => { socket.emit('vote', { id: o.id }); vibrate(28); paintVote(s); });
+          wrap.append(btn);
+        });
+        card.append(wrap);
+      } else {
+        const w = E('div', 'banner', '✦');
+        w.style.cssText = 'font-size:52px;margin-top:auto';
+        card.append(w);
+      }
+      screen.append(card);
+    }
+    const bl = document.getElementById('bline');
+    if (bl) {
+      bl.textContent = '';
+      const a = E('span', null, 'الفيروز ✦ ' + ar((b.stars && b.stars[1]) || 0) + ' · ' + ar((b.coins && b.coins[1]) || 0) + ' قطعة');
+      const c = E('span', null, 'الرمان ✦ ' + ar((b.stars && b.stars[2]) || 0) + ' · ' + ar((b.coins && b.coins[2]) || 0) + ' قطعة');
+      bl.append(a, c);
+    }
+    paintVote(s);
+  }
+  function paintVote(s) {
+    const b = s.board || {};
+    const wrap = document.getElementById('bvote'); if (!wrap || !b.vote) return;
+    const mine = (b.vote.mine || null);
+    wrap.querySelectorAll('.opt').forEach(o => CL(o, 'sel', o.dataset.id === mine));
+    const hits = b.vote.hits || {};
+    const total = Math.max(1, (hits.short || 0) + (hits.long || 0));
+    wrap.querySelectorAll('.opt').forEach(o => {
+      const sp = o.querySelector('span'); if (!sp) return;
+      const o0 = (b.vote.options || []).find(x => x.id === o.dataset.id) || {};
+      sp.textContent = (o0.note || '') + ' · ' + ar(hits[o.dataset.id] || 0) + ' صوت';
+    });
+  }
+
+  /* a watching phone still has a thumb: one big golden cheer button, and its count */
+  function cheerBar(s) {
+    let el = document.getElementById('cheer');
+    if (!s.cheer) { if (el) el.remove(); return; }
+    if (!el) {
+      el = E('div', 'cheerbar'); el.id = 'cheer';
+      const em = E('div', 'cemoji', '📣');
+      const tx = E('div', 'ctext');
+      const b1 = E('b', null, 'شجّع فريقك');
+      const b2 = E('span', null, 'اضغط — الجمهور يرفع فريقك');
+      tx.append(b1, b2);
+      const btn = E('button', 'cbtn', 'شجّع!');
+      btn.addEventListener('click', () => {
+        socket.emit('cheer');
+        vibrate(20);
+        el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+      });
+      el.append(em, tx, btn);
+      screen.append(el);
+    }
+    const sp = el.querySelector('.ctext span');
+    if (sp) T(sp, ar(s.cheer.count || 0) + ' تشجيع لفريقك');
+  }
+
   /* ---------------------------------------------------------------- render */
   let lastPhase = '', lastSpot = false, playingSig = '';
   function render() {
@@ -763,15 +844,18 @@
         } catch (e) { screen.textContent = ''; screen.append(E('div', 'card', 'خطأ في العرض')); }
       }
       updatePlayPanel(s);
+      cheerBar(s);
       return;
     }
     playingSig = '';
+    cheerBar(s);
     const key = s.phase + '|' + (s.mode || '');
     if (s.phase === 'lobby') lobbyPanel(s);
     else if (s.phase === 'wheel') wheelPanel(s);
     else if (s.phase === 'slot') slotPanel(s);
     else if (s.phase === 'announce') announcePanel(s);
     else if (s.phase === 'countdown') countdownPanel(s);
+    else if (s.phase === 'board') boardPanel(s);
     else if (s.phase === 'results') resultsPanel(s);
     else if (s.phase === 'final') finalPanel(s);
     else lobbyPanel(s);

@@ -11,13 +11,18 @@
  *   /admin     phone admin (key)  ·  the host page also carries a keyboard admin panel
  *   /api/state JSON snapshot (tests and monitoring)
  *
- * Phases: lobby → wheel → [slot] → announce → countdown → playing → results → (next | final)
+ * Phases: lobby → wheel → [slot] → announce → countdown → playing → results → board → (next | final)
+ *
+ * The BOARD is the party game: after every minigame both teams roll, walk the sixteen-space rug road, bank
+ * coins and golden dallahs, and a fork is decided by the phones. Stars win the night; points only set the dice.
  */
 'use strict';
 const http = require('http'), fs = require('fs'), path = require('path'), os = require('os'), crypto = require('crypto');
 const { Server } = require('socket.io');
 const QR = require('qrcode');
 const S = require('./lib/sim');
+const B = require('./lib/board');
+const PICK = require('./lib/picker');
 const GAMES = require('./games');
 
 const PORT = Number(process.env.PORT || 9520);
@@ -26,14 +31,15 @@ const PUBLIC_URL = (process.env.PUBLIC_URL || '').replace(/\/$/, '');
 const ROOT = __dirname;
 const PUB = path.join(__dirname, 'public');
 
-const DUR = { wheel: 6200, slot: 3800, announce: 4000, countdown: 3000, results: 8500 };
+const DUR = { wheel: 6200, slot: 3800, announce: 4000, countdown: 3000, results: 8500, board: 9000, vote: 11000 };
 const FORMAT_LABEL = {
   team: { ar: 'فريق ضد فريق', en: 'TEAM vs TEAM', short: 'TEAM' },
   spotlight: { ar: 'نجم واحد', en: '1v1 SPOTLIGHT', short: '1v1' },
   ffa: { ar: 'كلٌّ لنفسه', en: 'FREE-FOR-ALL', short: 'FFA' },
 };
 const TICK = 50, PAD_HZ = 5;
-const DEFAULT_LEN = 6;
+const SESSIONS = { short: 5, standard: 9 };
+const DEFAULT_LEN = SESSIONS.standard;
 
 function lanIP() {
   if (PUBLIC_URL) return PUBLIC_URL;
@@ -48,7 +54,8 @@ const room = {
   pool: GAMES.ids(), playlist: [], results: [], final: null, paused: false,
   players: {}, bySocket: new Map(), tokens: new Map(), hosts: new Set(), admins: new Set(),
   scores: {}, history: [], seq: 0, startedAt: 0, awards: [], pickCount: {}, lastPair: [],
-  match: null, wheel: null, slot: null, settings: { length: DEFAULT_LEN, formats: true },
+  match: null, wheel: null, slot: null, settings: { length: DEFAULT_LEN, formats: true, session: 'standard' },
+  board: B.fresh(), pickPool: [], lastWinner: null, cheers: { 1: 0, 2: 0 },
 };
 for (const t of S.TEAM_IDS) room.scores[t] = 0;
 
@@ -90,6 +97,8 @@ function beginParty(opts) {
   if (opts.length) room.settings.length = Math.max(1, Math.min(20, Number(opts.length)));
   room.playlist = []; room.results = []; room.final = null; room.idx = -1; room.history = [];
   room.awards = []; room.lastPair = []; room.match = null; room.wheel = null; room.slot = null;
+  room.board = B.fresh(); room.pickPool = active().map(p => p.id); room.lastWinner = null;
+  room.cheers = { 1: 0, 2: 0 };
   room.startedAt = Date.now();
   for (const t of S.TEAM_IDS) room.scores[t] = 0;
   Object.values(room.players).forEach(p => { p.score = 0; p.games = 0; p.crowns = 0; p.bet = null; p.idleGames = 0; });
@@ -120,13 +129,12 @@ function drawFormat(game) {
   return tie[Math.floor(Math.random() * tie.length)];
 }
 function drawPair() {
-  const pool = active().filter(p => !room.lastPair.includes(p.id) || active().length <= 2);
-  if (pool.length < 2) return null;
-  const sorted = pool.slice().sort((a, b) => (room.pickCount[a.id] || 0) - (room.pickCount[b.id] || 0) || Math.random() - 0.5);
-  const a = sorted[0];
-  let b = null;
-  for (const p of sorted.slice(1)) if (p.team !== a.team) { b = p; break; }
-  if (!b) b = sorted[1];
+  /* one pool per session (lib/picker): everyone gets a turn before anyone repeats, and the order inside the
+     pool is random so nobody can predict or game it */
+  const { pair, pool } = PICK.draw(active(), room.pickPool, Math.random);
+  room.pickPool = pool;
+  if (!pair || pair.length < 2) return null;
+  const [a, b] = pair;
   room.pickCount[a.id] = (room.pickCount[a.id] || 0) + 1;
   room.pickCount[b.id] = (room.pickCount[b.id] || 0) + 1;
   room.lastPair = [a.id, b.id];
@@ -215,6 +223,11 @@ function endPlaying(force) {
   };
   room.results.push(entry); room.history.push(entry);
   room.awards.push({ type: 'game', entry });
+  if (res.winnerTeam) {
+    room.lastWinner = res.winnerTeam;
+    room.board.coins[res.winnerTeam] += 6;
+    for (const t of S.TEAM_IDS) if (t !== res.winnerTeam) room.board.coins[t] += 3;
+  }
   for (const p of Object.values(room.players)) {
     if (!p.connected) continue;
     if (p.inputs === 0) p.idleGames = (p.idleGames || 0) + 1; else p.idleGames = 0;
@@ -225,10 +238,15 @@ function endPlaying(force) {
   broadcastLobby();
 }
 function finishParty() {
-  const ranked = S.TEAM_IDS.slice().sort((a, b) => room.scores[b] - room.scores[a]);
+  const bd = room.board;
+  const ranked = S.TEAM_IDS.slice().sort((a, b) =>
+    (bd.stars[b] - bd.stars[a]) || (bd.coins[b] - bd.coins[a]) || (room.scores[b] - room.scores[a]) || (bd.pos[b] - bd.pos[a]));
   const mvp = Object.values(room.players).sort((a, b) => b.score - a.score)[0];
   room.final = {
-    ranked: ranked.map(i => ({ team: i, score: room.scores[i], players: connected().filter(p => p.team === i).length })),
+    ranked: ranked.map(i => ({
+      team: i, score: room.scores[i], players: connected().filter(p => p.team === i).length,
+      stars: bd.stars[i], coins: bd.coins[i], pos: bd.pos[i],
+    })),
     winnerTeam: ranked[0],
     mvp: mvp ? { nick: mvp.nick, score: mvp.score, team: mvp.team } : null,
     games: room.results.length,
@@ -236,6 +254,39 @@ function finishParty() {
   room.phase = 'final'; room.at = Date.now(); room.seq++;
   log(`final: team ${ranked[0]} with ${room.scores[ranked[0]]} points`);
   broadcastLobby();
+}
+
+/* ------------------------------------------------------------------ the board */
+function enterBoard() {
+  const b = room.board;
+  const winner = room.lastWinner || (room.results[room.results.length - 1] || {}).winnerTeam || S.TEAM_IDS[0];
+  B.rollTurn(b, winner, Math.random);
+  const landings = [];
+  for (const t of S.TEAM_IDS) { B.move(b, t, b.turn.steps[t]); landings.push(B.land(b, t)); }
+  b.landings = landings;
+  b.done = false;
+  const forks = landings.filter(l => l.kind === 'fork');
+  b.vote = forks.length ? {
+    options: [{ id: 'short', ar: 'الطريق المختصر', note: '٣ خطوات − ٢ قطعة' }, { id: 'long', ar: 'السوق الطويل', note: '٥ خطوات' }],
+    hits: { short: 0, long: 0 }, teams: forks.map(f => f.team), at: Date.now(), result: null,
+  } : null;
+  for (const p of Object.values(room.players)) p.voteChoice = null;
+  room.phase = 'board'; room.at = Date.now(); room.seq++;
+  log(`board: ${landings.map(l => 'T' + l.team + ' +' + b.turn.steps[l.team] + ' → ' + l.kind).join(' | ')}`);
+  broadcastLobby();
+}
+function resolveVote() {
+  const b = room.board;
+  if (!b.vote || b.vote.result) return null;
+  b.vote.result = B.voteResult(b, b.vote.hits);
+  for (const t of b.vote.teams) { const l = B.applyFork(b, t, b.vote.result.choice); b.landings.push(l); }
+  broadcastLobby();
+  return b.vote.result;
+}
+function endBoard() {
+  resolveVote();
+  room.board.done = true;
+  openWheel();
 }
 
 /* ------------------------------------------------------------------ views */
@@ -273,7 +324,12 @@ function hostPayload(now) {
     playlist: poolMeta(), idx: room.idx, length: room.settings.length, results: last, final: room.final,
     match: matchView(), wheel: room.phase === 'wheel' ? room.wheel : null,
     slot: (room.phase === 'slot' || (room.phase === 'announce' && room.match && room.match.format === 'spotlight')) ? room.slot : null,
-    seq: room.seq, code: room.code, joinUrl: joinURL(), t: now,
+    board: {
+      coins: room.board.coins, stars: room.board.stars, pos: room.board.pos,
+      turn: room.board.turn, vote: room.board.vote, landings: room.board.landings || [],
+      log: room.board.log.slice(-4), cheers: room.cheers,
+    },
+    session: room.settings.session, seq: room.seq, code: room.code, joinUrl: joinURL(), t: now,
     recent: room.history.slice(-8).map(r => ({ gameId: r.gameId, ar: r.ar, format: r.format, winnerTeam: r.winnerTeam })),
   };
 }
@@ -293,6 +349,13 @@ function padPayload(p, now) {
     results: (room.phase === 'results' || room.phase === 'final') ? last : null,
     final: room.phase === 'final' ? room.final : null, players: connected().length,
     slot: room.phase === 'slot' ? room.slot : null,
+    board: room.phase === 'board' ? {
+      stars: room.board.stars, coins: room.board.coins, pos: room.board.pos,
+      vote: room.board.vote ? { options: room.board.vote.options, hits: room.board.vote.hits, teams: room.board.vote.teams, mine: p.voteChoice || null } : null,
+    } : null,
+    /* a phone with nothing to press is a dead phone: cheering is always available while a round runs */
+    cheer: (room.phase === 'playing' && (!view || view.watching || !view.controls || !view.controls.type || view.controls.type === 'none' || view.controls.disabled))
+      ? { team: p.team, count: room.cheers[p.team] || 0, mine: p.cheers || 0 } : null,
     scoreboard: S.TEAMS.map(t => ({ i: t.i, hex: t.hex, ar: t.ar, score: room.scores[t.i] || 0 })).sort((a, b) => b.score - a.score),
   };
 }
@@ -369,6 +432,7 @@ function adminCommand(msg) {
     if (room.phase !== 'slot' && room.phase !== 'announce') room.phase = 'slot';
     room.at = Date.now(); broadcastLobby(); return out({ text: 'rerolled' });
   }
+  if (a === 'session_set') { room.settings.session = SESSIONS[msg.value] ? msg.value : 'standard'; room.settings.length = SESSIONS[room.settings.session]; broadcastLobby(); return out({ text: room.settings.session }); }
   if (a === 'lobby') { room.phase = 'lobby'; room.mode = null; room.gameState = null; room.final = null; room.at = Date.now(); room.seq++; broadcastLobby(); return out({ text: 'lobby' }); }
   if (a === 'points') {
     const t = Number(msg.team), d = Math.round(Number(msg.delta) || 0);
@@ -419,7 +483,29 @@ function adminCommand(msg) {
     if (!list.length) return out({ ok: false, error: 'empty pool' });
     room.pool = list; broadcastLobby(); return out({ text: 'pool ' + list.length });
   }
-  if (a === 'length') { room.settings.length = Math.max(1, Math.min(20, Number(msg.value) || 6)); broadcastLobby(); return out({ text: 'length ' + room.settings.length }); }
+  if (a === 'length') { room.settings.length = Math.max(1, Math.min(20, Number(msg.value) || SESSIONS.standard)); broadcastLobby(); return out({ text: 'length ' + room.settings.length }); }
+  if (a === 'session') {
+    const name = SESSIONS[msg.value] ? msg.value : 'standard';
+    room.settings.session = name; room.settings.length = SESSIONS[name];
+    broadcastLobby(); return out({ text: 'session ' + name + ' (' + room.settings.length + ' games)' });
+  }
+  if (a === 'roll') {
+    if (room.phase !== 'board') return out({ ok: false, error: 'no board turn' });
+    if (room.board.vote && !room.board.vote.result) resolveVote(); else room.at = Date.now() - DUR.board;
+    return out({ text: 'board advanced' });
+  }
+  if (a === 'board') { if (room.phase === 'playing') endPlaying(true); enterBoard(); return out({ text: 'board opened' }); }
+  /* force the fork vote (a team may not land on space 8 in a demo); also how the vote is demoed at a party */
+  if (a === 'fork') {
+    if (room.phase !== 'board') { if (room.phase === 'playing') endPlaying(true); enterBoard(); }
+    room.board.vote = {
+      options: [{ id: 'short', ar: 'الطريق المختصر', note: '٣ خطوات − ٢ قطعة' }, { id: 'long', ar: 'السوق الطويل', note: '٥ خطوات' }],
+      hits: { short: 0, long: 0 }, teams: [1, 2], at: Date.now(), result: null,
+    };
+    for (const p of Object.values(room.players)) p.voteChoice = null;
+    room.phase = 'board'; room.at = Date.now(); room.seq++; broadcastLobby();
+    return out({ text: 'fork vote open' });
+  }
   if (a === 'players') return out({ players: Object.values(room.players).map(p => ({ id: p.id, nick: p.nick, team: p.team, connected: p.connected, afk: p.afk, score: p.score, bot: p.bot })) });
   if (a === 'state') return out({ state: hostPayload(Date.now()) });
   return out({ ok: false, error: 'unknown ' + a });
@@ -462,6 +548,26 @@ io.on('connection', (socket) => {
     if (!target) return;
     p.bet = target; p.inputs++;
     broadcastLobby();
+  });
+  socket.on('vote', (msg) => {
+    const p = room.bySocket.get(socket.id); if (!p) return;
+    const b = room.board;
+    if (room.phase !== 'board' || !b.vote || b.vote.result) return;
+    const id = String((msg || {}).id || '');
+    if (!b.vote.options.some(o => o.id === id)) return;
+    if (p.voteChoice === id) return;
+    if (p.voteChoice) b.vote.hits[p.voteChoice] = Math.max(0, (b.vote.hits[p.voteChoice] || 0) - 1);
+    p.voteChoice = id; p.inputs++;
+    b.vote.hits[id] = (b.vote.hits[id] || 0) + 1;
+    broadcastLobby();
+  });
+  socket.on('cheer', () => {
+    const p = room.bySocket.get(socket.id); if (!p) return;
+    const now = Date.now();
+    if (p.__cheerAt && now - p.__cheerAt < 120) return;
+    p.__cheerAt = now; p.cheers = (p.cheers || 0) + 1; p.inputs++; p.lastInputTs = now;
+    if (p.afk) { p.afk = false; p.idleGames = 0; }
+    room.cheers[p.team] = (room.cheers[p.team] || 0) + 1;
   });
   socket.on('select_team', (msg) => {
     const p = room.bySocket.get(socket.id); if (!p || room.phase === 'playing') return;
@@ -520,7 +626,13 @@ setInterval(() => {
         try { done = !!g.over(room, room.gameState); } catch (e) { done = false; }
         if (done) endPlaying(false);
       }
-    } else if (room.phase === 'results' && now - room.at >= DUR.results) openWheel();
+    } else if (room.phase === 'results' && now - room.at >= DUR.results) enterBoard();
+    else if (room.phase === 'board') {
+      const b = room.board;
+      if (b.vote && !b.vote.result) {
+        if (now - room.at >= DUR.vote) { resolveVote(); room.at = now; }
+      } else if (now - room.at >= DUR.board) endBoard();
+    }
   }
   const hz = (room.mode && GAMES[room.mode] && GAMES[room.mode].viewHz) || 15;
   if (room.hosts.size && now - lastHost >= 1000 / hz) { lastHost = now; io.to('hosts').emit('host', hostPayload(now)); }

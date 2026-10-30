@@ -1,20 +1,20 @@
 /* Majlis Party — projector renderer.
  *
- * One majlis at dusk: sand arena, Sadu border, tent canopies, brass lanterns, two team banners, and up to
- * 45 chunky characters drawn with four instanced meshes (body, head, ghutra, shadow blob) so a full room
- * costs four draw calls. Every minigame is a "stage" that adds its own props on the same floor; the HUD is
- * DOM so Arabic type stays crisp at projector size.
+ * A lantern-lit courtyard at night: a pomegranate rug, a plaster wall with a brass arch, two strings of lamps
+ * and a ring of cushions. The characters come from one rig in party-art.js (thobe, arms, head with a painted
+ * face, ghutra, iqal, team scarf) instanced for the whole hall. Every minigame is a "stage" that adds its own
+ * props on the same rug; the HUD is DOM, so Arabic type stays crisp at projector size.
  */
 (function () {
   'use strict';
   /* Two teams, and every prop is built one-per-team: two coffee trays, two lanes, two jets. */
   const TEAMS = [
-    { i: 1, ar: 'الفيروز', en: 'Turquoise', hex: '#2fd0b4', dark: '#0c5a4e' },
-    { i: 2, ar: 'العنبر', en: 'Amber', hex: '#f6a93b', dark: '#7a4712' },
+    { i: 1, ar: 'الفيروز', en: 'Turquoise', hex: '#3ED9B0', dark: '#0C5F4E' },
+    { i: 2, ar: 'الرمان', en: 'Pomegranate', hex: '#FF7A5C', dark: '#7C2430' },
   ];
   const TEAM = {}; TEAMS.forEach(t => TEAM[t.i] = t);
   /* the Safe-Colour game paints six Sadu hexes; those are palette colours, not team colours */
-  const PALETTE = ['#2fd0b4', '#f6a93b', '#b3382e', '#f6ead2', '#2a2154', '#7d5bb0'].map((hex, i) => ({ i: i + 1, hex }));
+  const PALETTE = ['#3ED9B0', '#FF7A5C', '#7A1D3B', '#FBF0DA', '#1B3350', '#A08FE8'].map((hex, i) => ({ i: i + 1, hex }));
   const $ = (s) => document.querySelector(s);
   /* canvas textures bake whatever font is loaded at build time — pull the display faces in first */
   if (document.fonts && document.fonts.load) {
@@ -43,287 +43,57 @@
 
   const clock = new THREE.Clock();
 
-  /* palette of the majlis at dusk */
-  const COL = { sand: 0xc9a174, sandDeep: 0x8c6a45, tent: 0xf0e7d2, ink: 0x120d26, gold: 0xe6bf6a, sky: 0x120d26 };
+  /* the set, lights and character rig live in party-art.js: one source of truth with the style frames */
+  const ART = window.PARTY_ART;
 
-  function makeTex(w, h, draw, repeat) {
-    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-    const g = cv.getContext('2d'); draw(g, w, h);
-    const t = new THREE.CanvasTexture(cv);
-    t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
-    if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat[0], repeat[1]); }
-    return t;
-  }
-
-  /* sand: warm base, soft dune blotches and fine grain — no long strokes, they tile into "planks" */
-  const sandTex = makeTex(512, 512, (g, w, h) => {
-    g.fillStyle = '#c9a174'; g.fillRect(0, 0, w, h);
-    for (let i = 0; i < 260; i++) {
-      const x = Math.random() * w, y = Math.random() * h, r = 18 + Math.random() * 54;
-      const gr = g.createRadialGradient(x, y, 0, x, y, r);
-      const warm = Math.random() < 0.5;
-      gr.addColorStop(0, warm ? 'rgba(226,199,158,.22)' : 'rgba(140,104,68,.16)');
-      gr.addColorStop(1, 'rgba(0,0,0,0)');
-      g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
-    }
-    for (let i = 0; i < 7000; i++) {
-      const x = Math.random() * w, y = Math.random() * h;
-      g.fillStyle = Math.random() < 0.5 ? 'rgba(255,240,212,.09)' : 'rgba(96,68,40,.10)';
-      g.fillRect(x, y, 1.4, 1.4);
-    }
-  }, [9, 9]);
-
-  /* Sadu weave: the border pattern. Cream ground, red/green diamonds and thin navy lines. */
-  const saduTex = makeTex(1024, 128, (g, w, h) => {
-    g.fillStyle = '#2b2140'; g.fillRect(0, 0, w, h);
-    g.fillStyle = '#2a1a10'; g.fillRect(0, 0, w, 6); g.fillRect(0, h - 6, w, 6);
-    for (let x = 0; x < w; x += 64) {
-      g.fillStyle = x % 128 === 0 ? '#a8452f' : '#12553a';
-      g.beginPath(); g.moveTo(x + 32, 18); g.lineTo(x + 56, 64); g.lineTo(x + 32, 110); g.lineTo(x + 8, 64); g.closePath(); g.fill();
-      g.fillStyle = 'rgba(239,228,201,.9)';
-      g.beginPath(); g.moveTo(x + 32, 44); g.lineTo(x + 44, 64); g.lineTo(x + 32, 84); g.lineTo(x + 20, 64); g.closePath(); g.fill();
-      g.fillStyle = '#e6bf6a'; g.fillRect(x + 2, 28, 4, 72);
-    }
-  }, [7, 1]);
-
-  const stripeTex = makeTex(512, 256, (g, w, h) => {
-    g.fillStyle = '#2b2140'; g.fillRect(0, 0, w, h);
-    const bands = [[0, 26, '#a8452f'], [40, 10, '#241a44'], [58, 6, '#e6bf6a'], [72, 18, '#1a1230'], [98, 26, '#3a2b63'], [132, 8, '#a8452f'], [148, 22, '#e6bf6a'], [178, 14, '#1a1230'], [200, 26, '#a8452f']];
-    for (const [y, hh, col] of bands) { g.fillStyle = col; g.fillRect(0, y, w, hh); }
-    for (let x = 0; x < w; x += 22) { g.fillStyle = 'rgba(239,228,201,.14)'; g.fillRect(x, 0, 3, h); }
-  }, [6, 1]);
-
-  /* ------------------------------------------------------------------ environment */
-  function buildSky() {
-    const geo = new THREE.SphereGeometry(320, 40, 24);
-    const mat = new THREE.ShaderMaterial({
-      side: THREE.BackSide, depthWrite: false,
-      uniforms: { top: { value: new THREE.Color(0x041a14) }, mid: { value: new THREE.Color(0x1d4a35) }, low: { value: new THREE.Color(0xd08d4c) }, sun: { value: new THREE.Color(0xffd9a0) } },
-      vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-      fragmentShader: [
-        'varying vec3 vP; uniform vec3 top; uniform vec3 mid; uniform vec3 low; uniform vec3 sun;',
-        'void main(){',
-        '  float h = normalize(vP).y;',
-        '  vec3 c = mix(low, mid, smoothstep(-0.02, 0.22, h));',
-        '  c = mix(c, top, smoothstep(0.2, 0.72, h));',
-        '  float d = distance(normalize(vP), normalize(vec3(-0.55, 0.06, -1.0)));',
-        '  c += sun * 0.55 * exp(-d * 3.0) + sun * 0.18 * exp(-d * 9.0);',
-        '  gl_FragColor = vec4(c, 1.0);',
-        '}'
-      ].join('\n'),
-    });
-    scene.add(new THREE.Mesh(geo, mat));
-  }
-
-  function duneSilhouette(z, height, color, seed) {
-    const shape = new THREE.Shape();
-    shape.moveTo(-160, 0);
-    for (let x = -160; x <= 160; x += 4) {
-      const y = height * (0.55 + 0.45 * Math.sin(x / 34 + seed) * Math.cos(x / 71 - seed)) + 0.6;
-      shape.lineTo(x, Math.max(0.2, y));
-    }
-    shape.lineTo(160, 0); shape.closePath();
-    const mesh = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshBasicMaterial({ color, fog: false }));
-    mesh.position.set(0, 0, z);
-    scene.add(mesh);
-    return mesh;
-  }
-
-  function buildGround() {
-    const floor = new THREE.Mesh(new THREE.CircleGeometry(46, 72), new THREE.MeshStandardMaterial({ map: sandTex, color: 0x2b2138, roughness: 1, metalness: 0 }));
-    floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; floor.position.y = -0.02;
-    scene.add(floor);
-
-    /* the arena: a Sadu border ring, slightly raised, so the play area reads from the back row */
-    const border = new THREE.Mesh(new THREE.RingGeometry(12.35, 13.05, 128), new THREE.MeshStandardMaterial({ map: saduTex, roughness: .95, side: THREE.DoubleSide }));
-    border.rotation.x = -Math.PI / 2; border.position.y = 0.015; border.receiveShadow = true;
-    scene.add(border);
-
-    const inner = new THREE.Mesh(new THREE.CircleGeometry(12.35, 96), new THREE.MeshStandardMaterial({ map: sandTex, color: 0x352a45, roughness: 1 }));
-    inner.rotation.x = -Math.PI / 2; inner.position.y = 0.012; inner.receiveShadow = true;
-    scene.add(inner);
-
-    duneSilhouette(-46, 7.0, 0x1e1740, 1.2);
-    duneSilhouette(-72, 11.0, 0x161032, 2.7);
-    duneSilhouette(-110, 16.0, 0x0d0a20, 0.4);
-  }
-
-  function buildMajlis() {
-    const grp = new THREE.Group();
-    /* tent wall behind the arena: two panels meeting at a shallow angle, Sadu band across the top */
-    const mat = new THREE.MeshStandardMaterial({ map: stripeTex, roughness: .92, side: THREE.DoubleSide });
-    const wallL = new THREE.Mesh(new THREE.PlaneGeometry(30, 7.4), mat);
-    wallL.position.set(-9.4, 3.4, -16.5); wallL.rotation.y = Math.PI * 0.16; grp.add(wallL);
-    const wallR = wallL.clone(); wallR.position.x = 9.4; wallR.rotation.y = -Math.PI * 0.16; grp.add(wallR);
-
-    const canopyMat = new THREE.MeshStandardMaterial({ color: 0x2f2344, roughness: .9, side: THREE.DoubleSide });
-    const canopy = new THREE.Mesh(new THREE.PlaneGeometry(34, 5.2), canopyMat);
-    canopy.position.set(0, 7.1, -14.2); canopy.rotation.x = -0.42; grp.add(canopy);
-
-    const poleMat = new THREE.MeshStandardMaterial({ color: 0x6b4a2a, roughness: .8 });
-    for (const x of [-15, -5.2, 5.2, 15]) {
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.16, 7.6, 8), poleMat);
-      pole.position.set(x, 3.8, -16.1); pole.castShadow = true; grp.add(pole);
-    }
-    /* brass lanterns: emissive cores + a soft sprite glow (no extra lights, so the GPU stays free) */
-    const glowTex = makeTex(128, 128, (g, w, h) => {
-      const rg = g.createRadialGradient(w / 2, h / 2, 2, w / 2, h / 2, w / 2);
-      rg.addColorStop(0, 'rgba(255,206,130,.95)'); rg.addColorStop(.35, 'rgba(255,180,90,.45)'); rg.addColorStop(1, 'rgba(255,160,70,0)');
-      g.fillStyle = rg; g.fillRect(0, 0, w, h);
-    });
-    const lanternMat = new THREE.MeshStandardMaterial({ color: 0x8a6a34, emissive: 0xffb45a, emissiveIntensity: 1.6, roughness: .5, metalness: .6 });
-    const lanterns = [];
-    for (let i = 0; i < 7; i++) {
-      const x = -12 + i * 4;
-      const l = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.16, 0.55, 8), lanternMat);
-      l.position.set(x, 5.5 + Math.sin(i * 1.7) * 0.5, -12.6);
-      const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: 0xffc987, transparent: true, opacity: .85, depthWrite: false }));
-      glow.scale.set(2.6, 2.6, 1); glow.position.copy(l.position); l.userData.glow = glow;
-      l.userData.base = l.position.y;
-      grp.add(l); grp.add(glow); lanterns.push(l);
-    }
-    grp.userData.lanterns = lanterns;
-
-    /* the majlis seating: a cushioned ring facing the arena, built here rather than imported, so the
-       furniture reads as one Sadu set instead of a furniture pack wearing our colours */
-    const seatA = new THREE.MeshStandardMaterial({ color: 0x4a2130, roughness: .96 });
-    const seatB = new THREE.MeshStandardMaterial({ color: 0x2b2150, roughness: .96 });
-    const trim = new THREE.MeshStandardMaterial({ color: 0xc99441, metalness: .7, roughness: .35 });
-    const SEATS = 22;
-    for (let i = 0; i < SEATS; i++) {
-      const a = -2.05 + (i / (SEATS - 1)) * 4.10;      /* around the back of the room, clear of the camera */
-      const rad = 15.4;
-      const x = Math.sin(a) * rad, z = Math.cos(a) * rad;
-      const seat = new THREE.Mesh(new THREE.BoxGeometry(2.35, 0.42, 0.95), i % 2 ? seatB : seatA);
-      seat.position.set(x, 0.21, z); seat.rotation.y = a; seat.receiveShadow = true; seat.castShadow = true;
-      const back = new THREE.Mesh(new THREE.BoxGeometry(2.35, 0.72, 0.22), i % 2 ? seatB : seatA);
-      back.position.set(x + Math.sin(a) * 0.42, 0.72, z + Math.cos(a) * 0.42); back.rotation.y = a; back.castShadow = true;
-      const edge = new THREE.Mesh(new THREE.BoxGeometry(2.36, 0.06, 0.06), trim);
-      edge.position.set(x - Math.sin(a) * 0.48, 0.44, z - Math.cos(a) * 0.48); edge.rotation.y = a;
-      grp.add(seat, back, edge);
-    }
-
-    scene.add(grp);
-    return grp;
-  }
-
-  function buildBanners() {
-    const grp = new THREE.Group();
-    const poleMat = new THREE.MeshStandardMaterial({ color: 0x5d4025, roughness: .8 });
-    TEAMS.forEach((t, i) => {
-      const a = Math.PI * i + Math.PI / 2;
-      const x = Math.sin(a) * 13.9, z = Math.cos(a) * 13.9;
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 4.6, 6), poleMat);
-      pole.position.set(x, 2.3, z); pole.castShadow = true; grp.add(pole);
-      const tex = makeTex(256, 160, (g, w, h) => {
-        g.fillStyle = t.hex; g.fillRect(0, 0, w, h);
-        g.fillStyle = 'rgba(0,0,0,.16)'; for (let k = 0; k < 5; k++) g.fillRect(0, 18 + k * 28, w, 8);
-        g.fillStyle = 'rgba(20,16,43,.85)'; g.font = '800 46px Baloo, Tajawal, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-        g.fillText(t.ar, w / 2, h / 2 + 4);
-      });
-      const cloth = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.1), new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide, roughness: .95 }));
-      cloth.position.set(x, 3.9, z); cloth.rotation.y = a + Math.PI;
-      grp.add(cloth);
-    });
-    scene.add(grp);
-  }
-
-  function buildLights() {
-    scene.add(new THREE.HemisphereLight(0xffcf9a, 0x241a3d, 0.26));
-    const sun = new THREE.DirectionalLight(0xffc27a, 0.62);
-    sun.position.set(-22, 17, -26); sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
-    sun.shadow.camera.left = -22; sun.shadow.camera.right = 22; sun.shadow.camera.top = 22; sun.shadow.camera.bottom = -22;
-    sun.shadow.camera.near = 1; sun.shadow.camera.far = 90; sun.shadow.bias = -0.0012;
-    scene.add(sun);
-    const fill = new THREE.DirectionalLight(0x9d8ce0, 0.3); fill.position.set(14, 9, 12); scene.add(fill);
-    /* a lantern wash from the front-left so the arena sits in warm night light, not a flat game-show court */
-    const lantern = new THREE.PointLight(0xffb45a, 2.6, 36, 2); lantern.position.set(-7.5, 5.4, 6.5); scene.add(lantern);
-    const lantern2 = new THREE.PointLight(0xffcf8a, 2.0, 32, 2); lantern2.position.set(7.5, 5.0, 4.0); scene.add(lantern2);
-  }
+  function makeTex(w, h, draw, repeat) { return ART.tex(w, h, draw, repeat); }
+  function makeStage() { const g = new THREE.Group(); scene.add(g); return g; }
 
   /* ------------------------------------------------------------------ characters */
-  const blobTex = makeTex(64, 64, (g, w, h) => {
-    const rg = g.createRadialGradient(w / 2, h / 2, 2, w / 2, h / 2, w / 2);
-    rg.addColorStop(0, 'rgba(20,12,4,.55)'); rg.addColorStop(.7, 'rgba(20,12,4,.20)'); rg.addColorStop(1, 'rgba(20,12,4,0)');
-    g.fillStyle = rg; g.fillRect(0, 0, w, h);
-  });
-  const MAXC = 64;
-  const bodyMat = new THREE.MeshStandardMaterial({ roughness: .78, metalness: .02 });
-  const headMat = new THREE.MeshStandardMaterial({ color: 0xe8c49a, roughness: .85 });
-  const ghutraMat = new THREE.MeshStandardMaterial({ color: 0xf2ece0, roughness: .9 });
-  const bodyGeo = new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.33, 0.5, 5, 12) : new THREE.CylinderGeometry(0.33, 0.36, 1.1, 12);
-  const body = new THREE.InstancedMesh(bodyGeo, bodyMat, MAXC);
-  const head = new THREE.InstancedMesh(new THREE.SphereGeometry(0.29, 16, 12), headMat, MAXC);
-  const ghutra = new THREE.InstancedMesh(new THREE.SphereGeometry(0.315, 16, 10, 0, Math.PI * 2, 0, Math.PI * 0.55), ghutraMat, MAXC);
-  const blob = new THREE.InstancedMesh(new THREE.PlaneGeometry(1.05, 1.05), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false }), MAXC);
-  body.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  head.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  ghutra.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  blob.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  body.castShadow = true; head.castShadow = true;
-  body.count = head.count = ghutra.count = blob.count = 0;
-  body.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAXC * 3), 3);
-  scene.add(body, head, ghutra, blob);
-
-  /* every character keeps a smoothed world position; the server sends 15 Hz, the renderer eases at 60 */
-  const chars = new Map();
-  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v3 = new THREE.Vector3(), sc = new THREE.Vector3(), eul = new THREE.Euler();
-  const col = new THREE.Color(), colB = new THREE.Color();
+  /* ONE rig, everywhere: lobby crowd, play floor, board tokens, podium. party-art.js builds the parts
+     (thobe, arms, head, face, ghutra, iqal, scarf, contact shadow) as instanced meshes. */
+  const rig = new ART.Rig(scene, 64);
+  const CH = new Map();
+  const PAL = { 1: { hex: '#3ED9B0' }, 2: { hex: '#FF7A5C' } };
+  const TEAM_PAL = {};
 
   function updateChars(list, dt, mode) {
-    const seen = new Set();
+    const now = performance.now() / 1000;
+    const out = [];
     list.forEach((ch, idx) => {
-      seen.add(ch.id);
-      let c = chars.get(ch.id);
-      if (!c) { c = { x: ch.x || 0, z: ch.z || 0, y: 0, rot: 0, team: ch.team, out: 0, born: performance.now(), seed: Math.random() * 10 }; chars.set(ch.id, c); }
+      let c = CH.get(ch.id);
+      if (!c) { c = { x: ch.x || 0, z: ch.z || 0, rot: 0, team: ch.team, out: 0, born: now, seed: Math.random() * 9, walk: 0 }; CH.set(ch.id, c); }
       c.team = ch.team;
-      /* arrows has no positions in the sim: lay the crowd in rows facing the screen */
       let tx = ch.x || 0, tz = ch.z || 0;
       if (mode === 'arrows') {
         const n = list.length, per = Math.ceil(Math.sqrt(n));
         tx = ((idx % per) - (per - 1) / 2) * 1.15;
         tz = (Math.floor(idx / per) - 1.2) * 1.15;
       }
-      const k = 1 - Math.pow(0.001, dt);
-      c.x += (tx - c.x) * k; c.z += (tz - c.z) * k;
-      c.outT = ch.out ? (ch.outT || 0) + dt : 0;
-      if (ch.out) c.out = Math.min(1, (c.out || 0) + dt * 2.6); else c.out = Math.max(0, (c.out || 0) - dt * 3);
-      /* jump: the sim reports seconds since the jump started */
+      const k = 1 - Math.pow(0.0015, dt);
+      const dx = tx - c.x, dz = tz - c.z;
+      c.walk = Math.min(1, Math.hypot(dx, dz) * 2.2);
+      c.x += dx * k; c.z += dz * k;
+      if (Math.abs(dx) + Math.abs(dz) > 0.02) c.rot = Math.atan2(dx, dz);
+      if (ch.out) c.out = Math.min(1, c.out + dt * 2.4); else c.out = Math.max(0, c.out - dt * 3);
       const jt = ch.jump != null && ch.jump >= 0 ? ch.jump : -1;
-      const jumpY = jt >= 0 && jt < 0.66 ? Math.sin((jt / 0.66) * Math.PI) * 1.05 : 0;
-      c.jumpY = jumpY;
-      const bob = Math.sin(performance.now() / 420 + c.seed) * 0.035;
-      const y = jumpY + bob + (ch.current ? 0.06 : 0);
-      const s = c.born ? Math.min(1, (performance.now() - c.born) / 320) : 1;
-      const scale = (0.98 + (ch.current ? 0.1 : 0)) * s;
-      const fall = c.out * 1.5;
-      const lean = ch.vx || ch.vz ? Math.atan2(ch.vx || 0, ch.vz || 0) : 0;
-      c.rot += (((lean || 0) - c.rot) * Math.min(1, dt * 8));
-      const rr = ch.dash ? 0.86 : 1;
-      eul.set(c.out * 1.5, c.rot, 0);
-      q.setFromEuler(eul);
-      v3.set(c.x, y - fall * 0.55 + 0.55 * scale, c.z);
-      sc.set(scale * rr, scale * (1 - c.out * 0.25), scale * rr);
-      m4.compose(v3, q, sc);
-      body.setMatrixAt(idx, m4);
-      v3.set(c.x, y + 0.92 * scale - fall * 0.5, c.z);
-      m4.compose(v3, q, sc); head.setMatrixAt(idx, m4);
-      v3.set(c.x, y + 0.98 * scale - fall * 0.5, c.z); m4.compose(v3, q, sc); ghutra.setMatrixAt(idx, m4);
-      eul.set(-Math.PI / 2, 0, 0); q.setFromEuler(eul);
-      v3.set(c.x, 0.02, c.z); sc.set(scale, scale, scale); m4.compose(v3, q, sc); blob.setMatrixAt(idx, m4);
-      const t = TEAM[c.team] || TEAM[1];
-      col.set(t.hex); colB.set(ch.save != null && ch.save >= 0 && ch.save < 0.3 ? 0xffffff : t.dark);
-      col.lerp(colB, 0.35 + c.out * 0.4);
-      body.setColorAt(idx, col);
+      const jump = jt >= 0 && jt < 0.66 ? Math.sin((jt / 0.66) * Math.PI) * 1.1 : 0;
+      const s = Math.min(1, (now - c.born) / 0.32);
+      out.push({
+        x: c.x, z: c.z, rot: c.rot, team: c.team, jump,
+        lean: (ch.vx || ch.vz) ? 0.12 : 0, scale: (1.28 + (ch.current ? 0.12 : 0)) * s,
+        out: c.out, walk: c.walk,
+      });
     });
-    charCount = list.length;
-    body.count = head.count = ghutra.count = blob.count = Math.min(MAXC, charCount);
-    body.instanceMatrix.needsUpdate = true; head.instanceMatrix.needsUpdate = true;
-    ghutra.instanceMatrix.needsUpdate = true; blob.instanceMatrix.needsUpdate = true;
-    if (body.instanceColor) body.instanceColor.needsUpdate = true;
-    for (const id of Array.from(chars.keys())) if (!seen.has(id)) chars.delete(id);
+    for (const id of Array.from(CH.keys())) if (!list.some(ch => ch.id === id)) CH.delete(id);
+    if (window.PARTY_ART) {
+      const pal = { 1: { hex: (S_TEAM(1).hex) }, 2: { hex: (S_TEAM(2).hex) } };
+      rig.set(out, now, pal);
+      charCount = out.length;
+    }
+    return out.length;
   }
+  function S_TEAM(i) { return TEAM[i] || TEAM[1]; }
 
   /* ------------------------------------------------------------------ stages */
   const stages = {};
@@ -1315,6 +1085,7 @@
 
   /* ------------------------------------------------------------------ camera */
   const CAM = {
+    'default': { p: [0, 5.6, 14.6], l: [0, 1.9, -2.6] },
     lobby: { p: [0, 8.6, 20.5], l: [0, 2.0, -3] },
     wheel: { p: [0, 5.6, 17.0], l: [0, 4.5, 1.4] },
     sweep: { p: [0, 10.4, 15.4], l: [0, 1.0, 0] },
@@ -1341,11 +1112,21 @@
     lavatanks: { p: [0, 6.2, 18.5], l: [0, 1.6, -0.5] },
     heartdodge: { p: [0, 14.2, 13.6], l: [0, 0.2, -0.6] },
   };
-  const camPos = new THREE.Vector3(0, 8.6, 20.5), camLook = new THREE.Vector3(0, 2, -3);
-  let camWanted = { p: [0, 8.6, 20.5], l: [0, 2, -3] };
+  /* CAMERA RULES: the action fills the middle of the frame, the floor never takes half the height, and the
+     lens sits lower and closer than a stage-manager wide so 45 characters read as bodies. */
+  CAM.lobby = { p: [0, 5.3, 13.8], l: [0, 1.9, -2.6] };
+  CAM.board = { p: [0, 18.0, 10.2], l: [0, 0.1, -2.4] };
+  CAM.podium = { p: [0, 4.6, 12.6], l: [0, 2.0, 0.6] };
+  CAM.wheel = { p: [0, 3.4, 12.4], l: [0, 4.2, 0] };
+  /* scratch objects shared by the stages (the old rig owned these; the stages still use them) */
+  const v3 = new THREE.Vector3(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), eul = new THREE.Euler(), m4 = new THREE.Matrix4(), col = new THREE.Color();
+  const camPos = new THREE.Vector3(0, 5.3, 13.8), camLook = new THREE.Vector3(0, 1.9, -2.6);
+  let camWanted = CAM.lobby;
 
   function setCamFor(s) {
-    if (s.phase === 'wheel') camWanted = CAM.wheel;
+    if (s.phase === 'board') camWanted = CAM.board;
+    else if (s.phase === 'final') camWanted = CAM.podium;
+    else if (s.phase === 'wheel') camWanted = CAM.wheel;
     else if (s.phase === 'playing' || s.phase === 'results' || s.phase === 'announce' || s.phase === 'countdown') camWanted = CAM[s.mode] || CAM.lobby;
     else camWanted = CAM.lobby;
   }
@@ -1361,51 +1142,86 @@
   }
 
   /* ------------------------------------------------------------------ state */
-  let env = null, lastCharsAt = 0, podiumKey = '';
-  let gate = null;
+  let env = null, lastCharsAt = 0, podiumKey = '', boardObj = null, podiumObj = null;
 
   function applyState(s) {
     if (!s) return;
     state = s;
     setCamFor(s);
+
+    /* the rug road: built once, then its tiles are lit by the server's board state */
+    if (s.phase === 'board' && !boardObj && window.BOARD) boardObj = ART.buildBoard(scene, window.BOARD);
+
     if (s.phase === 'wheel' && s.wheel) {
       const key = 'wheel:' + (s.wheel.index) + ':' + s.wheel.order.join(',');
       if (stageId !== 'wheel' || !wheel || wheel.key !== key) { buildWheel(s.wheel); wheel.key = key; }
     } else if (s.phase === 'playing' && s.mode) {
-      if (stageId !== s.mode) {
-        buildStage(s.mode);
-        if (s.mode === 'sweep' || s.mode === 'arrows' || s.mode === 'colour' || s.mode === 'sumo' || s.mode === 'balloon' || s.mode === 'glassfill') {
-          /* nothing else to prebuild */
-        }
-      }
-    } else if (s.phase === 'final' || s.phase === 'lobby') {
+      if (stageId !== s.mode) buildStage(s.mode);
+    } else if (s.phase === 'lobby') {
       if (stageId !== 'none') { clearStage(); stageId = 'none'; }
-      body.count = head.count = ghutra.count = blob.count = 0;
     }
-    /* finale: the two teams stand on the sand as animated avatars, dressed in their own colour */
-    if (window.MAJLIS_GLB) {
-      const ranked = (s.teams || []).slice().sort((a, b) => (b.score || 0) - (a.score || 0));
-      const key = s.phase === 'final' && ranked.length ? 'podium:' + ranked.map(t => t.key).join(',') : '';
+
+    /* finale: the same rig on two lit plinths, the winner nearest the camera */
+    if (s.phase === 'final') {
+      if (!podiumObj) podiumObj = ART.buildPodium(scene);
+      const ranked = (s.teams || []).slice().sort((a, b) => ((b.stars || 0) - (a.stars || 0)) || ((b.score || 0) - (a.score || 0)));
+      const key = ranked.map(t => t.key).join(',');
       if (key !== podiumKey) {
         podiumKey = key;
-        if (key) {
-          MAJLIS_GLB.podium(scene, [
-            { url: '/assets/chars/char-a.glb', hex: ranked[0].hex, x: 6.1, z: 4.6, rotY: -0.15, clip: 'emote-yes', tier: 1.9, plinthR: 1.5 },
-            { url: '/assets/chars/char-b.glb', hex: (ranked[1] || ranked[0]).hex, x: -5.9, z: 4.6, rotY: 0.15, clip: 'idle', tier: 0.7, plinthR: 1.2 },
-          ]);
-        } else MAJLIS_GLB.clearPodium();
+        podiumChars = ranked.slice(0, 2).map((t, i) => ({ x: i === 0 ? 3.6 : -3.6, z: 0.6, team: t.i }));
       }
-    }
+    } else { podiumKey = ''; podiumChars = []; }
+
     const view = s.view || null;
-    if (view && view.chars && view.chars.length) updateChars(view.chars, Math.min(0.1, (performance.now() - lastCharsAt) / 1000 || 0.016), s.mode);
-    else if (s.phase === 'playing') updateChars([], 0.016, s.mode);
+    const dt = Math.min(0.1, (performance.now() - lastCharsAt) / 1000 || 0.016);
+    lastCharsAt = performance.now();
+
+    if (s.phase === 'lobby') {
+      /* the room fills as phones join: one character per connected player, standing along the rug */
+      const n = Math.min(45, s.players || 0);
+      const list = [];
+      for (let i = 0; i < n; i++) {
+        const a = -1.85 + (i / Math.max(1, n - 1)) * 3.7;
+        const r = 8.6 + (i % 3) * 0.55;
+        list.push({ id: 'lobby' + i, x: Math.sin(a) * r, z: Math.cos(a) * r * 0.62 + 1.6, team: (i % 2) + 1, rot: a });
+      }
+      updateChars(list, dt, 'lobby');
+    } else if (s.phase === 'board') {
+      /* tokens walk the road; the crowd is not on screen, the board is the show */
+      updateChars([], dt, s.mode);
+      const b = s.board || {};
+      if (boardObj && b.pos) {
+        const now = performance.now() / 1000;
+        const tokens = [1, 2].map(t => {
+          const p = window.BOARD.POINTS[Math.min(window.BOARD.POINTS.length - 1, b.pos[t] || 0)];
+          const w = ART.boardPoint(p);
+          /* two tokens on one space must not become one token: they sit shoulder to shoulder */
+          const same = (b.pos[1] || 0) === (b.pos[2] || 0);
+          const off = same ? (t === 1 ? 0.42 : -0.42) : (t === 1 ? 0.0 : 0.0);
+          return { x: w.x + off, z: w.z + (same ? (t === 1 ? -0.2 : 0.2) : 0), team: t, jump: 0.42 + Math.abs(Math.sin(now * 1.6 + t)) * 0.12, scale: 1.75, rot: t === 1 ? 0.22 : -0.22 };
+        });
+        rig.set(tokens, now, { 1: { hex: '#3ED9B0' }, 2: { hex: '#FF7A5C' } });
+        boardObj.tiles.forEach((tile, i) => {
+          const on = (b.pos[1] === i) || (b.pos[2] === i);
+          tile.mesh.position.y = 0.13 + (on ? 0.11 : 0) + Math.sin(now * 2 + i) * (on ? 0.02 : 0);
+          tile.face.position.y = 0.215 + tile.mesh.position.y - 0.13;
+        });
+      }
+    } else if (s.phase === 'final') {
+      const now = performance.now() / 1000;
+      rig.set(podiumChars.map((c, i) => ({ x: c.x, z: c.z, team: c.team, scale: 1.9 - i * 0.25, jump: Math.abs(Math.sin(now * 1.8 + i)) * 0.18, rot: i ? 0.18 : -0.18 })), now,
+        { 1: { hex: '#3ED9B0' }, 2: { hex: '#FF7A5C' } });
+    } else if (view && view.chars && view.chars.length) {
+      updateChars(view.chars, dt, s.mode);
+    } else if (s.phase === 'playing' || s.phase === 'results' || s.phase === 'announce' || s.phase === 'countdown') {
+      updateChars([], dt, s.mode);
+    }
     if (view && view.game) animateStage(s, view.game, 0.016);
   }
+  let podiumChars = [];
 
   /* ------------------------------------------------------------------ boot */
-  buildSky(); buildGround(); buildLights(); env = buildMajlis(); buildBanners();
-  /* the majlis set around the arena: Kenney (CC0) furniture, restyled to the night palette */
-  if (window.MAJLIS_GLB) { try { MAJLIS_GLB.dress(scene); } catch (e) { console.warn('dressing failed', e); } }
+  ART.buildSky(scene); ART.buildLights(scene); env = ART.buildSet(scene);
 
   function resize() {
     const w = window.innerWidth, h = window.innerHeight;
@@ -1423,7 +1239,7 @@
     setState: applyState,
     frame(dt) {
       updateCamera(dt);
-      if (window.MAJLIS_GLB) MAJLIS_GLB.update(dt);
+      if (ART && ART.animate) ART.animate(env, performance.now() / 1000);
       if (state) {
         let view = state.view;
         if (view && view.game) animateStage(state, view.game, dt);

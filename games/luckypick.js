@@ -84,7 +84,7 @@ function hostView(room, st) {
 }
 
 function padView(room, st, p) {
-  if (!st.live[p.id]) return { head: 'خرجت', sub: 'شاهد الجولة القادمة', controls: { type: 'none' }, stats: [{ k: 'المتبقّون', v: S.ar(alive(st).length) }], team: { i: (p.team || 1) - 1 } };
+  if (!st.live[p.id]) return { head: 'خرجت', sub: 'شاهد الجولة القادمة', controls: { type: 'none' }, watching: true, stats: [{ k: 'المتبقّون', v: S.ar(alive(st).length) }], team: { i: (p.team || 1) - 1 } };
   const locked = st.picks[p.id] != null;
   const opts = [];
   for (let i = 0; i < BOXES; i++) opts.push({ id: String(i), label: '🎁', en: String(i + 1), hex: locked && st.picks[p.id] === i ? '#e0b558' : '#2a4a3c' });

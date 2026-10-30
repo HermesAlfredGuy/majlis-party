@@ -96,7 +96,7 @@ function hostView(room, st) {
 
 function padView(room, st, p) {
   const q = st.players[p.id];
-  if (!q) return { head: 'الجولة القادمة', controls: { type: 'none' }, stats: [], team: { i: (p.team || 1) - 1 } };
+  if (!q) return { head: 'الجولة القادمة', controls: { type: 'none' }, watching: true, stats: [], team: { i: (p.team || 1) - 1 } };
   /* the next date to land, from this player's point of view */
   const next = st.dates.filter(d => !d.landed && st.t - d.born < FALL_MS).sort((a, b) => (FALL_MS - (st.t - a.born)) - (FALL_MS - (st.t - b.born)))[0];
   let hint = null;

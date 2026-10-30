@@ -130,7 +130,7 @@ function hostView(room, st) {
 
 function padView(room, st, p) {
   const T = me(st, p);
-  if (!T) return { head: 'شاهد', controls: { type: 'none' }, stats: [], team: { i: (p.team || 1) - 1 } };
+  if (!T) return { head: 'شاهد', controls: { type: 'none' }, watching: true, stats: [], team: { i: (p.team || 1) - 1 } };
   const yourTurn = st.tanks[st.turn] && st.tanks[st.turn].id === p.id;
   const enemy = st.tanks.find(t => t.id !== p.id);
   const charge = T.charging ? Math.min(1, (st.t - T.chargeAt) / CHARGE_MS) : 0;

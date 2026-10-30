@@ -126,3 +126,54 @@ two phone buttons (Tap to pump / End turn) and a big, tense balloon. Target ≈ 
 - Exactly two teams, auto-balanced, players may switch side in the lobby.
 - No difficulty ramp inside a round and no rapid-fire chain: calm, readable rounds (owner rule).
 - Phones are on one Wi-Fi/hotspot; 150–500 ms latency is normal and must not decide a round.
+
+---
+
+## v2 — the board, the picker, the night
+
+### Why the board exists
+The wheel decides *what* you play; the board decides *why it matters*. Without a shared map between rounds the
+party is a sequence of disconnected minigames and the projector has nothing to hold the room during the eight
+seconds between them. The rug road gives every result a visible consequence and gives the phones something to
+do that is not a minigame: a vote.
+
+### How the road is drawn
+`public/board-path.js` holds the sixteen spaces as normalised points, their kind, glyph and Arabic label. The
+style frames, the projector (`public/party-art.js`) and the rules (`lib/board.js`) all read that one file, so a
+space can never be a shop on screen and a coin in the rules. The 3D board is a smaller woven rug laid on the
+floor: cream tiles with an ink glyph, the space number in the corner, a cream ribbon threaded through every
+tile so the eye can follow the road from eight metres, and four brass chevrons for direction.
+
+### The economy, in one paragraph
+Coins come from minigames (6 to the winner, 3 to the other team) and from the road; ten coins buy a golden
+dallah at the shop; a dallah space gives one; the goal gives one and five coins. Chaos and event spaces are
+one-line surprises with small, legible effects. The finale ranks by dallahs, then coins, then points — points
+only decide who rolls two dice on the next board turn. That keeps the minigames meaningful without letting a
+single bad round decide the night.
+
+### The picker's promise
+`lib/picker.js` keeps one pool per session: everyone connected who has not yet been in the arena. Draws are
+random inside the pool, pairs are taken from different teams, leavers leave the pool, and late joiners enter it.
+When the pool empties it refills. `tests/board.test.js` drives 45 bots through 24 rounds and asserts that the
+first 44 draws are 44 different phones, that no pair is same-team, and that a disconnected player is skipped.
+
+### Session length
+The lobby offers two lengths — five rounds (~20 minutes) and nine (~40). The host can change it from the lobby
+card or the admin panel; the wheel and the board do not care which was chosen, only how many rounds remain.
+
+### What we rejected
+* **Neon souq** — reads nightclub, and a saturated neon palette fights 45 phone screens in a dark room.
+* **Six teams** — v1's six colour teams split the room and made every minigame a scatter; two teams fill the
+  arena and make the board a race between two visible sides.
+* **Accelerating difficulty** — the brief forbids it, and it punishes the losing team twice.
+* **A "next round is coming" pad card** — a phone that says that while a round is running reads as broken; the
+  fix is a live control (cheer) plus honest copy.
+
+### Review record (designer passes)
+| Pass | What was looked at | Score | Fixed after |
+|---|---|---|---|
+| 1 | style frames f1/f2/f3 (1920×1080) | 6.5 | team plates re-gridded, board route drawn, token size |
+| 2 | projector lobby with 45 phones | 8.5 | round chip shows "الاستعداد" in the lobby, lobby crowd added |
+| 3 | board phase | 4 → 7 | route ribbon, bigger numbers, tokens grounded, camera lifted |
+| 4 | phone pad in a live round | 7 → 8.5 | controls fill the phone, cheer bar at thumb height |
+| 5 | the 90 s film | 9 | overlay chips moved into the letterbox |

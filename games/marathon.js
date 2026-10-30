@@ -131,7 +131,7 @@ function hostView(room, st) {
 
 function padView(room, st, p) {
   const q = st.players[p.id];
-  if (!q) return { head: 'الجولة القادمة', controls: { type: 'none' }, stats: [], team: { i: (p.team || 1) - 1 } };
+  if (!q) return { head: 'الجولة القادمة', controls: { type: 'none' }, watching: true, stats: [], team: { i: (p.team || 1) - 1 } };
   const r = curRun(st);
   const rule = curRule(st);
   let hint = null;

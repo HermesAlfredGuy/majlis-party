@@ -89,7 +89,7 @@ function relayHostView(room, st, kind) {
 
 function relayPadView(room, st, p, kind) {
   const T = st.teams[p.team];
-  if (!T) return { head: 'الجولة القادمة', controls: { type: 'none' }, stats: [], team: { i: (p.team || 1) - 1 } };
+  if (!T) return { head: 'الجولة القادمة', controls: { type: 'none' }, watching: true, stats: [], team: { i: (p.team || 1) - 1 } };
   const yours = T.current === p.id && !T.popped;
   return {
     head: T.popped ? 'انفجر!' : yours ? 'دورك — اضغط باستمرار' : 'دور زميلك',

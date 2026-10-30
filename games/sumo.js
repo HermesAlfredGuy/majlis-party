@@ -137,7 +137,7 @@ function hostView(room, st) {
 
 function padView(room, st, p) {
   const q = st.P[p.id];
-  if (!q) return { head: 'الجولة القادمة', controls: { type: 'none' }, stats: [], team: { i: (p.team || 1) - 1 } };
+  if (!q) return { head: 'الجولة القادمة', controls: { type: 'none' }, watching: true, stats: [], team: { i: (p.team || 1) - 1 } };
   const cd = Math.max(0, 1 - (st.t - q.dashAt) / DASH_CD);
   let hint = null;
   if (p.bot && !q.out && !st.done) {

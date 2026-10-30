@@ -93,13 +93,16 @@
   }
   function paintScoreboard(s) {
     if (!boardReady) buildScoreboard();
-    const max = Math.max(1, ...s.teams.map(t => t.score));
+    const b = s.board || {};
+    const stars = b.stars || {}, coins = b.coins || {};
+    const max = Math.max(1, ...s.teams.map(t => (stars[t.i] || 0)));
     s.teams.forEach(t => {
       const r = boardRefs[t.i]; if (!r) return;
-      T(r.sc, ar(t.score));
-      T(r.pl, playersAr(t.players) + (t.afk ? ' · ' + ar(t.afk) + ' غائب' : ''));
-      ST(r.fill, 'width', Math.round((t.score / max) * 100) + '%');
-      CL(r.card, 'lead', t.score === max && max > 0);
+      /* one number per team: golden dallahs. Coins and players ride underneath. */
+      T(r.sc, ar(stars[t.i] || 0));
+      T(r.pl, '✦ ' + ar(stars[t.i] || 0) + ' دالية · ' + ar(coins[t.i] || 0) + ' قطعة · ' + playersAr(t.players) + (t.afk ? ' · ' + ar(t.afk) + ' غائب' : ''));
+      ST(r.fill, 'width', Math.round(((stars[t.i] || 0) / max) * 100) + '%');
+      CL(r.card, 'lead', (stars[t.i] || 0) === max && max > 0);
     });
   }
 
@@ -118,29 +121,42 @@
   function clearCentre() { if (cardKey !== null) { cardKey = null; refs = {}; $('#centre').textContent = ''; } }
 
   function lobbyCard(s) {
-    const r = centre('lobby:' + s.code + ':' + TEAMS.map(t => t.i).join(), () => {
-      const card = E('div', 'card lobby');
+    const r = centre('lobby:' + s.code + ':' + (s.session || 'standard') + ':' + TEAMS.map(t => t.i).join(), () => {
+      const card = E('div', 'card lobbycard');
       const qr = E('div', 'qrbox'); const img = E('img'); img.alt = 'QR'; img.src = '/qr.png?c=' + s.code; qr.append(img);
-      const side = E('div');
+      const side = E('div', 'lobbyright');
       const tag = E('div', 'tag', 'امسح والعب');
-      const h1 = E('h1', null, 'امسح الرمز والعب من جوالك');
-      h1.style.fontSize = 'clamp(24px,2.6vw,44px)';
+      const h1 = E('h1', null, 'امسح الرمز والعب');
+      h1.style.fontSize = 'clamp(24px,2.4vw,42px)';
       const how = E('div', 'how', 'الكاميرا تكفي — أو أدخل الرمز في /play');
-      const code = E('div', 'code', ar(s.code));
-      const roster = E('div'); roster.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px';
+      const code = E('div', 'code');
+      const cs = E('small', null, 'رمز الغرفة'); code.append(cs, document.createTextNode(ar(s.code)));
+      const roster = E('div'); roster.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px';
       const teamEls = TEAMS.map(t => {
-        const d = E('div'); d.style.cssText = 'border-radius:16px;padding:10px 12px;border-top:6px solid ' + t.hex + ';background:rgba(42,33,84,.7)';
-        const n = E('div', null, t.ar); n.style.cssText = 'font-family:var(--display);font-weight:800;font-size:clamp(14px,1.2vw,20px)';
-        const c = E('div', null, '٠'); c.style.cssText = 'font-size:clamp(12px,1vw,16px);opacity:.7;font-weight:700';
+        const d = E('div'); d.style.cssText = 'border-radius:16px;padding:8px 12px;border-top:6px solid ' + t.hex + ';background:rgba(26,51,80,.7)';
+        const n = E('div', null, t.ar); n.style.cssText = 'font-family:var(--display);font-weight:800;font-size:clamp(14px,1.2vw,20px);color:' + t.hex;
+        const c = E('div', null, '٠'); c.style.cssText = 'font-family:var(--num);font-weight:900;font-size:clamp(18px,1.6vw,26px)';
         d.append(n, c); roster.append(d);
         return c;
       });
+      /* session length lives here: the host picks before the wheel, the party picks nothing */
+      const pick = E('div'); pick.style.cssText = 'display:flex;gap:8px;margin-top:12px;align-items:center';
+      const lbl = E('span', null, 'طول الليلة'); lbl.style.cssText = 'font-weight:700;opacity:.75;font-size:clamp(12px,1vw,16px)';
+      const mk = (name, label) => {
+        const b = E('button', 'btn'); b.textContent = label;
+        b.style.cssText = 'padding:9px 16px;border-radius:999px;font:700 clamp(12px,1vw,16px)/1 Tajawal;cursor:pointer;border:2px solid var(--brass);background:' +
+          (s.session === name ? 'var(--brass)' : 'transparent') + ';color:' + (s.session === name ? '#2A1A08' : 'var(--lamp)');
+        b.addEventListener('click', () => send({ action: 'session', value: name }));
+        return b;
+      };
+      const bShort = mk('short', 'قصيرة · ٥ جولات');
+      const bStd = mk('standard', 'كاملة · ٩ جولات');
+      pick.append(lbl, bShort, bStd);
       const line = E('div', 'how', '٠ لاعب متصل');
-      side.append(tag, h1, how, code, roster, line);
+      side.append(tag, h1, how, code, roster, pick, line);
       card.append(qr, side);
-      return { node: card, refs: { teamEls, line, code } };
+      return { node: card, refs: { teamEls, line, code, bShort, bStd } };
     });
-    T(r.code, ar(s.code));
     T(r.line, ar(s.players) + ' لاعب متصل · فريقان يُوزّعان تلقائياً');
     s.teams.forEach((t, i) => { if (r.teamEls[i]) T(r.teamEls[i], playersAr(t.players)); });
   }
@@ -283,22 +299,27 @@
 
   function finalCard(s) {
     const f = s.final; if (!f) return;
-    centre('final:' + (s.teams || []).map(t => t.score).join(','), () => {
-      const card = E('div', 'card');
+    centre('final:' + (f.ranked || []).map(r => r.team + ':' + r.stars + ':' + r.coins).join(','), () => {
+      const card = E('div', 'card fincard');
       const tag = E('div', 'tag', 'نهاية الحفلة · FINAL');
       const win = T_[f.winnerTeam] || TEAMS[0];
       const h1 = E('h1', null, '🏆 ' + win.ar + ' يفوز');
-      const mvp = E('div', 'crown', f.mvp ? '⭐ نجم الحفلة: ' + arNick(f.mvp.nick) + ' — ' + ar(f.mvp.score) + ' نقطة' : '');
-      const podium = E('div', 'podium');
+      h1.style.color = win.hex;
+      const sub = E('div', 'how', 'الدالية الذهبية تقرّر الليلة — النقاط تحدّد النرد فقط');
+      /* one row per team: the two numbers that mattered all night */
+      const rows = E('div', 'finrows');
       (f.ranked || []).forEach((r, i) => {
         const t = T_[r.team] || TEAMS[0];
-        const p = E('div', 'p');
-        p.style.height = (i === 0 ? 26 : 18) + 'vh';
-        p.style.borderTop = '5px solid ' + t.hex;
-        p.append(E('div', 'r', '#' + ar(i + 1)), E('div', 'n', t.ar), E('div', 's', ar(r.score)));
-        podium.append(p);
+        const row = E('div', 'finrow'); row.style.setProperty('--hex', t.hex);
+        const pos = E('span', 'fpos', '#' + ar(i + 1));
+        const nm = E('span', 'fnm', t.ar);
+        const st = E('span', 'fst', '✦ ' + ar(r.stars || 0));
+        const co = E('span', 'fco', ar(r.coins || 0) + ' قطعة');
+        row.append(pos, nm, st, co);
+        rows.append(row);
       });
-      card.append(tag, h1, mvp, podium);
+      const mvp = E('div', 'crown', f.mvp ? '⭐ نجم الحفلة: ' + arNick(f.mvp.nick) + ' — ' + ar(f.mvp.score) + ' نقطة' : '');
+      card.append(tag, h1, sub, rows, mvp);
       return { node: card, refs: {} };
     });
   }
@@ -575,7 +596,8 @@
     T($('#t-en'), playingish && g ? g.en : 'MAJLIS PARTY');
     T($('#format'), s.match ? s.match.label.ar : '—');
     T($('#playerschip'), playersAr(s.players || 0));
-    T($('#round'), (s.length ? 'الجولة ' + ar((s.idx || 0) + 1) + ' من ' + ar(s.length) : '—') + (wcName ? ' · ' + wcName : ''));
+    const roundTxt = s.phase === 'lobby' ? 'الاستعداد' : (s.length ? 'الجولة ' + ar((s.idx || 0) + 1) + ' من ' + ar(s.length) : '—');
+    T($('#round'), roundTxt + (wcName ? ' · ' + wcName : ''));
     let timer = '';
     if (s.phase === 'playing') timer = (s.view && s.view.hud && s.view.hud.left != null) ? s.view.hud.left : '';
     else if (['announce', 'countdown', 'wheel', 'slot', 'results'].includes(s.phase)) timer = Math.ceil((s.left || 0) / 1000);
@@ -591,11 +613,79 @@
     else if (s.phase === 'results') resultsCard(s);
     else if (s.phase === 'final') finalCard(s);
     else clearCentre();
+    if (s.phase === 'board') { clearCentre(); boardHud(s); const bd = $('#boarddice'); if (bd) bd.style.display = ''; }
+    else {
+      const bv = $('#boardvote'); if (bv) bv.classList.remove('on');
+      const bd = $('#boarddice'); if (bd) bd.style.display = 'none';
+      const bl = $('#boardlanding'); if (bl) { bl.textContent = ''; bl.dataset.key = ''; }
+    }
     dartLegend(s);
     ruleBar(s);
     gameLabel(s);
     joinLine(s);
     paintAdmin(s);
+  }
+
+
+  /* ───────────────────────────────────────────── the board turn */
+  function boardHud(s) {
+    const b = s.board || {};
+    const vote = $('#boardvote'), opts = $('#boardvoteopts'), vtim = $('#boardvotetimer');
+    if (vote) {
+      const on = !!(b.vote && !b.vote.result);
+      CL(vote, 'on', on);
+      if (on) {
+        const hits = b.vote.hits || {};
+        const total = Math.max(1, (hits.short || 0) + (hits.long || 0));
+        if (opts && opts.children.length !== 2) {
+          opts.textContent = '';
+          b.vote.options.forEach(o => {
+            const d = E('div', 'vopt');
+            const vt = E('div', 'vt'); const t1 = E('span', null, o.ar); const pc = E('b', null, '٠');
+            vt.append(t1, pc);
+            const bar = E('i'); const fill = E('u');
+            bar.append(fill); d.append(vt, bar);
+            d.dataset.id = o.id; opts.append(d);
+          });
+        }
+        if (opts) b.vote.options.forEach(o => {
+          const d = opts.querySelector('[data-id="' + o.id + '"]'); if (!d) return;
+          const n = hits[o.id] || 0;
+          T(d.querySelector('b'), ar(Math.round((n / total) * 100)) + '٪');
+          ST(d.querySelector('u'), 'width', Math.round((n / total) * 100) + '%');
+        });
+        T(vtim, '٦ ثوانٍ · الأغلبية تفوز · ' + ar(s.left ? Math.ceil(s.left / 1000) : 0) + ' ث');
+      }
+    }
+    const dice = $('#boarddice');
+    if (dice) {
+      const t = b.turn;
+      const ds = dice.querySelectorAll('.d');
+      if (t && ds.length === 2) {
+        [1, 2].forEach((team, i) => {
+          const v = Math.max.apply(null, t.dice[team] || [0]);
+          T(ds[i], ar(v));
+          ds[i].style.borderColor = (TEAMS.find(x => x.i === team) || {}).hex || '#FBF0DA';
+        });
+      }
+      T($('#boarddicelabel'), t ? 'الفائز ' + (TEAMS.find(x => x.i === t.winner) || {}).ar + ' يرمي نردين' : 'النرد');
+    }
+    const land = $('#boardlanding');
+    if (land) {
+      const items = (b.landings || []).slice(-3);
+      const key = items.map(l => l.team + ':' + l.space + ':' + l.text).join('|');
+      if (land.dataset.key !== key) {
+        land.dataset.key = key;
+        land.textContent = '';
+        items.forEach(l => {
+          const team = TEAMS.find(x => x.i === l.team) || {};
+          const d = E('div'); d.style.setProperty('--hex', team.hex || '#FBF0DA');
+          const b1 = E('b', null, team.ar || ''); b1.style.color = team.hex || 'var(--lamp)';
+          d.append(b1, document.createTextNode(' ' + (l.text || '')));
+          land.append(d);
+        });
+      }
+    }
   }
 
   /* ───────────────────────────────────────────── socket + loop */
